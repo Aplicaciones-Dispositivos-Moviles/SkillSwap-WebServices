@@ -4,8 +4,7 @@
 ///     Upload certificate command
 /// </summary>
 /// <param name="OwnerId">The authenticated student who owns the certificate (taken from the token, never from the body)</param>
-/// <param name="FileName">The original file name</param>
-/// <param name="ContentType">The MIME type of the file</param>
+/// <param name="ContentType">The MIME type declared by the client</param>
 /// <param name="FileContent">The raw content of the file</param>
 /// <param name="HolderName">Holder name read by the OCR, if any</param>
 /// <param name="InstitutionName">Issuing institution read by the OCR, if any</param>
@@ -19,7 +18,6 @@
 /// <param name="OcrText">Full text recognized by the OCR, kept for audit and reprocessing</param>
 public record UploadCertificateCommand(
     int OwnerId,
-    string FileName,
     string ContentType,
     byte[] FileContent,
     string? HolderName,
