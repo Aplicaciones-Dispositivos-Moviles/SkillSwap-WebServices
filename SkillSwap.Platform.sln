@@ -5,6 +5,8 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillSwap.Platform", "SkillSwap.Platform\SkillSwap.Platform.csproj", "{03C754DF-777E-4F8A-A086-76F3B4D59417}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillSwap.Platform.Tests", "SkillSwap.Platform.Tests\SkillSwap.Platform.Tests.csproj", "{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,6 +29,18 @@ Global
 		{03C754DF-777E-4F8A-A086-76F3B4D59417}.Release|x64.Build.0 = Release|Any CPU
 		{03C754DF-777E-4F8A-A086-76F3B4D59417}.Release|x86.ActiveCfg = Release|Any CPU
 		{03C754DF-777E-4F8A-A086-76F3B4D59417}.Release|x86.Build.0 = Release|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Debug|x64.Build.0 = Debug|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Debug|x86.Build.0 = Debug|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Release|x64.ActiveCfg = Release|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Release|x64.Build.0 = Release|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Release|x86.ActiveCfg = Release|Any CPU
+		{3E39BE5C-A56A-45B1-BCBF-F2A48235FF21}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
