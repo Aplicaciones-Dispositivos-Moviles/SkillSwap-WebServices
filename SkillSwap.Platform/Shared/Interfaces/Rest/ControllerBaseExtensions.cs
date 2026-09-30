@@ -14,14 +14,22 @@ namespace SkillSwap.Platform.Shared.Interfaces.Rest;
 public static class ControllerBaseExtensions
 {
     /// <summary>
-    ///     The id of the currently authenticated user, as resolved from the Bearer token.
+    ///     The currently authenticated user, as resolved from the Bearer token.
     /// </summary>
     /// <exception cref="InvalidOperationException">
     ///     Thrown if called on an action that isn't behind the request authorization middleware.
     /// </exception>
+    public static User CurrentUser(this ControllerBase controller)
+    {
+        return (User?)controller.HttpContext.Items["User"]
+               ?? throw new InvalidOperationException("No authenticated user in context.");
+    }
+
+    /// <summary>
+    ///     The id of the currently authenticated user.
+    /// </summary>
     public static int CurrentUserId(this ControllerBase controller)
     {
-        var user = (User?)controller.HttpContext.Items["User"];
-        return user?.Id ?? throw new InvalidOperationException("No authenticated user in context.");
+        return controller.CurrentUser().Id;
     }
 }

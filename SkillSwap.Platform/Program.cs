@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using Microsoft.AspNetCore.Builder;
+using SkillSwap.Platform.Shared.Infrastructure.Localization;
 using SkillSwap.Platform.Iam.Application.CommandServices;
 using SkillSwap.Platform.Iam.Application.Internal.CommandServices;
 using SkillSwap.Platform.Iam.Application.Internal.OutboundServices;
@@ -82,6 +84,14 @@ app.UseSwagger();
 app.UseSwaggerUI();
 
 app.UseCors("AllowAll");
+
+// English is the default language; any Spanish variant is served as es-419.
+var localizationOptions = new RequestLocalizationOptions()
+    .SetDefaultCulture("en-US")
+    .AddSupportedCultures("en-US", LatinAmericanSpanishRequestCultureProvider.Culture)
+    .AddSupportedUICultures("en-US", LatinAmericanSpanishRequestCultureProvider.Culture);
+localizationOptions.RequestCultureProviders.Insert(0, new LatinAmericanSpanishRequestCultureProvider());
+app.UseRequestLocalization(localizationOptions);
 
 app.UseRequestAuthorization();
 

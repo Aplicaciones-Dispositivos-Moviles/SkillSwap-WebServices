@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+    <data name="GenericError" xml:space="preserve">
+        <value>Ocurrió un error.</value>
+    </data>
+    <data name="OperationCancelled" xml:space="preserve">
+        <value>La operación fue cancelada.</value>
+    </data>
+    <data name="DatabaseError" xml:space="preserve">
+        <value>Ocurrió un error en la base de datos.</value>
+    </data>
+    <data name="InternalServerError" xml:space="preserve">
+        <value>Ocurrió un error interno inesperado.</value>
+    </data>
+    <data name="InvalidCredentials" xml:space="preserve">
+        <value>Usuario o contraseña incorrectos.</value>
+    </data>
+    <data name="UserBanned" xml:space="preserve">
+        <value>Tu cuenta ha sido suspendida.</value>
+    </data>
+    <data name="UsernameAlreadyTaken" xml:space="preserve">
+        <value>El nombre de usuario ya está en uso.</value>
+    </data>
+    <data name="EmailAlreadyTaken" xml:space="preserve">
+        <value>El correo ya está registrado.</value>
+    </data>
+    <data name="InvalidInstitutionalEmail" xml:space="preserve">
+        <value>El correo debe ser un correo institucional válido (.edu.pe).</value>
+    </data>
+    <data name="InvalidUsername" xml:space="preserve">
+        <value>El nombre de usuario debe tener entre 3 y 100 caracteres y no contener espacios.</value>
+    </data>
+    <data name="WeakPassword" xml:space="preserve">
+        <value>La contraseña debe tener entre 8 y 72 caracteres.</value>
+    </data>
+    <data name="UserNotFound" xml:space="preserve">
+        <value>No se encontró el usuario indicado.</value>
+    </data>
+    <data name="NotProfileOwner" xml:space="preserve">
+        <value>Solo puedes modificar tu propio perfil.</value>
+    </data>
+    <data name="BioTooLong" xml:space="preserve">
+        <value>La biografía no puede exceder los 1000 caracteres.</value>
+    </data>
+</root>
