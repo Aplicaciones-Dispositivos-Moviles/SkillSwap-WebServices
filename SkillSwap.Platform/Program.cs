@@ -64,6 +64,8 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT"
     });
+    options.MapType<DateOnly>(() => new OpenApiSchema { Type = "string", Format = "date" });
+    options.MapType<DateOnly?>(() => new OpenApiSchema { Type = "string", Format = "date", Nullable = true });
     options.OperationFilter<AuthorizeCheckOperationFilter>();
 });
 
