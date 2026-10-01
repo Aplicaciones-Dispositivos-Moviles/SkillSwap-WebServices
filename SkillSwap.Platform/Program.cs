@@ -28,6 +28,7 @@ using SkillSwap.Platform.CredentialVerification.Domain.Services;
 using SkillSwap.Platform.CredentialVerification.Infrastructure.FileStorage.Configuration;
 using SkillSwap.Platform.CredentialVerification.Infrastructure.FileStorage.Services;
 using SkillSwap.Platform.CredentialVerification.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using SkillSwap.Platform.CredentialVerification.Application.ACL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +104,7 @@ builder.Services.AddScoped<ICertificateCommandService, CertificateCommandService
 builder.Services.AddScoped<ICertificateQueryService, CertificateQueryService>();
 builder.Services.AddScoped<ICertificateRiskScorer, CertificateRiskScorer>();
 builder.Services.AddSingleton<IFileStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<ICredentialContextFacade, CredentialContextFacade>();
 
 var app = builder.Build();
 
