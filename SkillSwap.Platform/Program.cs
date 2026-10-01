@@ -39,6 +39,7 @@ using SkillSwap.Platform.LearningPathEngine.Domain.Services;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.AI;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.Taxonomy;
+using SkillSwap.Platform.LearningPathEngine.Application.ACL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -135,6 +136,7 @@ builder.Services.AddScoped<ILearningPathCommandService, LearningPathCommandServi
 builder.Services.AddScoped<IAssessmentBlueprintCommandService, AssessmentBlueprintCommandService>();
 builder.Services.AddScoped<ILearningPathQueryService, LearningPathQueryService>();
 builder.Services.AddScoped<IAssessmentBlueprintQueryService, AssessmentBlueprintQueryService>();
+builder.Services.AddScoped<ILearningPathContextFacade, LearningPathContextFacade>();
 builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerator>();
 
 var app = builder.Build();
