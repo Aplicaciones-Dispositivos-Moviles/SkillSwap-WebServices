@@ -28,6 +28,16 @@ public static class LearningPathTestData
         AssignNodeIds(path);
         return path;
     }
+    
+    /// <summary>
+    ///     Same path as <see cref="NewPath" />, but the nodes keep no id: the database assigns them on save.
+    /// </summary>
+    public static LearningPath NewUnsavedPath(int studentId, params string[] goalTags)
+    {
+        var goal = Goal(goalTags.Length == 0 ? ["authentication-jwt"] : goalTags);
+        var gap = new SkillGapAnalyzer(Taxonomy).Analyze(goal, []);
+        return new LearningPath(studentId, goal, new LearningPathBuilder(Taxonomy).BuildPath(gap));
+    }
 
     public static void AssignNodeIds(LearningPath path)
     {
