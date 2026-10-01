@@ -99,7 +99,7 @@ public class LearningPath
         return this;
     }
 
-    /// <summary>
+        /// <summary>
     ///     Links a certificate to a node as supporting evidence. The first certificate linked to a node
     ///     is kept, and completed nodes accept none.
     /// </summary>
@@ -107,17 +107,50 @@ public class LearningPath
     /// <exception cref="DomainException">Thrown when the node is unknown or the certificate id is invalid.</exception>
     public bool LinkCertificate(int nodeId, int certificateId)
     {
+        RequireValidCertificate(certificateId);
+        return TryLink(RequireNode(nodeId), certificateId);
+    }
+
+    /// <summary>
+    ///     Same as <see cref="LinkCertificate" />, but identifying the node by its skill. It works on a
+    ///     path that has not been saved yet, when the nodes have no id.
+    /// </summary>
+    /// <returns>True when the certificate was linked; false when the skill is not in the path, the node
+    /// already had a certificate or it is completed.</returns>
+    public bool LinkCertificateToSkill(string skillTag, int certificateId)
+    {
+        RequireValidCertificate(certificateId);
+        var node = _nodes.FirstOrDefault(n => string.Equals(n.SkillTag, skillTag, StringComparison.Ordinal));
+        return node is not null && TryLink(node, certificateId);
+    }
+
+    /// <summary>
+    ///     The prerequisites of a node that are not completed yet.
+    /// </summary>
+    /// <exception cref="DomainException">Thrown when the node does not belong to this path.</exception>
+    public IReadOnlyList<string> PendingPrerequisitesOf(int nodeId)
+    {
+        var node = RequireNode(nodeId);
+        var completed = _nodes.Where(n => n.Status == NodeStatus.Completed)
+            .Select(n => n.SkillTag).ToHashSet(StringComparer.Ordinal);
+        return node.PrerequisiteSkillTags.Where(tag => !completed.Contains(tag)).ToList();
+    }
+
+    private static void RequireValidCertificate(int certificateId)
+    {
         if (certificateId <= 0)
             throw new DomainException("The certificate id is not valid.");
+    }
 
-        var node = RequireNode(nodeId);
+    private bool TryLink(PathNode node, int certificateId)
+    {
         if (node.Status == NodeStatus.Completed || node.LinkedCertificateId is not null) return false;
 
         node.LinkCertificate(certificateId);
         UpdatedAt = DateTime.UtcNow;
         return true;
     }
-
+    
     /// <summary>
     ///     Points an available node to its latest generated assessment. A new attempt replaces the
     ///     previous pointer (older blueprints remain as history).

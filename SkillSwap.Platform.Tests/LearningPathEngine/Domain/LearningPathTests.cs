@@ -3,6 +3,7 @@ using SkillSwap.Platform.LearningPathEngine.Domain.Model.Entities;
 using SkillSwap.Platform.LearningPathEngine.Domain.Model.ValueObjects;
 using SkillSwap.Platform.Shared.Domain.Exceptions;
 using SkillSwap.Platform.Tests.Support;
+using SkillSwap.Platform.LearningPathEngine.Domain.Services;
 
 namespace SkillSwap.Platform.Tests.LearningPathEngine.Domain;
 
@@ -203,5 +204,66 @@ public class LearningPathTests
     public void AttachBlueprint_WithAnInvalidId_Throws()
     {
         Assert.Throws<DomainException>(() => NewPath().AttachBlueprint(1, 0));
+    }
+    
+        // ---------- Linking by skill and pending prerequisites ----------
+
+    [Fact]
+    public void LinkCertificateToSkill_LinksTheNodeOfThatSkill()
+    {
+        var path = NewPath();
+
+        Assert.True(path.LinkCertificateToSkill("rest-api-design", 42));
+
+        Assert.Equal(42, path.Nodes.Single(n => n.SkillTag == "rest-api-design").LinkedCertificateId);
+        Assert.Equal(NodeStatus.Locked, path.Nodes.Single(n => n.SkillTag == "rest-api-design").Status);
+    }
+
+    [Fact]
+    public void LinkCertificateToSkill_WorksOnAPathWhoseNodesHaveNoIdYet()
+    {
+        var goal = LearningPathTestData.Goal("authentication-jwt");
+        var gap = new SkillGapAnalyzer(LearningPathTestData.Taxonomy).Analyze(goal, []);
+        var path = new LearningPath(1, goal, new LearningPathBuilder(LearningPathTestData.Taxonomy).BuildPath(gap));
+
+        Assert.True(path.LinkCertificateToSkill("http-basics", 7));
+        Assert.Equal(7, path.Nodes.Single(n => n.SkillTag == "http-basics").LinkedCertificateId);
+        Assert.Null(path.Nodes.Single(n => n.SkillTag == "networking-basics").LinkedCertificateId);
+    }
+
+    [Fact]
+    public void LinkCertificateToSkill_ReturnsFalseForASkillOutsideThePathOrAnAlreadyLinkedNode()
+    {
+        var path = NewPath();
+        path.LinkCertificateToSkill("rest-api-design", 42);
+
+        Assert.False(path.LinkCertificateToSkill("sql-fundamentals", 43));
+        Assert.False(path.LinkCertificateToSkill("rest-api-design", 43));
+        Assert.Equal(42, path.Nodes.Single(n => n.SkillTag == "rest-api-design").LinkedCertificateId);
+    }
+
+    [Fact]
+    public void LinkCertificateToSkill_WithAnInvalidCertificate_Throws()
+    {
+        Assert.Throws<DomainException>(() => NewPath().LinkCertificateToSkill("rest-api-design", 0));
+    }
+
+    [Fact]
+    public void PendingPrerequisitesOf_ListsOnlyTheOnesNotCompleted()
+    {
+        var path = NewPath();
+
+        Assert.Equal(["http-basics", "programming-fundamentals"], path.PendingPrerequisitesOf(4));
+
+        path.CompleteNode(2);
+        Assert.Equal(["http-basics"], path.PendingPrerequisitesOf(4));
+
+        Assert.Empty(path.PendingPrerequisitesOf(1));
+    }
+
+    [Fact]
+    public void PendingPrerequisitesOf_ForAnUnknownNode_Throws()
+    {
+        Assert.Throws<DomainException>(() => NewPath().PendingPrerequisitesOf(99));
     }
 }
