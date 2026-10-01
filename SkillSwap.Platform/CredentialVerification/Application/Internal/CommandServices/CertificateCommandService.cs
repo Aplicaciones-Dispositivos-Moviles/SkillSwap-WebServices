@@ -50,8 +50,8 @@ public class CertificateCommandService(
         if (ExceedsFieldLimits(command)) return Failure(CredentialVerificationError.FieldTooLong);
 
         var fileHash = Convert.ToHexString(SHA256.HashData(command.FileContent)).ToLowerInvariant();
-        if (await certificateRepository.ExistsByFileHashAsync(command.OwnerId, fileHash, cancellationToken))
-            return Failure(CredentialVerificationError.DuplicateFile);
+        var existing = await certificateRepository.FindByFileHashAsync(command.OwnerId, fileHash, cancellationToken);
+        if (existing is not null) return DuplicateFileFailure(existing.Id);
 
         string storageReference;
         try
@@ -207,6 +207,13 @@ public class CertificateCommandService(
             logger.LogWarning(exception, "Orphaned certificate file could not be deleted: {StorageReference}",
                 storageReference);
         }
+    }
+    
+    private Result<Certificate> DuplicateFileFailure(int existingCertificateId)
+    {
+        var error = CredentialVerificationError.DuplicateFile;
+        return Result<Certificate>.Failure(error, localizer[error.ToString()],
+            new Dictionary<string, object> { ["existingCertificateId"] = existingCertificateId });
     }
 
     private Result<Certificate> Failure(CredentialVerificationError error)

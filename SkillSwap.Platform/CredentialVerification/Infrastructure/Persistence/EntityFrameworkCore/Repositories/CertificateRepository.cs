@@ -24,10 +24,11 @@ public class CertificateRepository(AppDbContext context)
     }
 
     /// <inheritdoc />
-    public async Task<bool> ExistsByFileHashAsync(int ownerId, string fileHash, CancellationToken cancellationToken)
+    public async Task<Certificate?> FindByFileHashAsync(int ownerId, string fileHash,
+        CancellationToken cancellationToken)
     {
         return await Context.Set<Certificate>()
-            .AnyAsync(c => c.OwnerId == ownerId && c.FileHash == fileHash, cancellationToken);
+            .FirstOrDefaultAsync(c => c.OwnerId == ownerId && c.FileHash == fileHash, cancellationToken);
     }
 
     /// <inheritdoc />

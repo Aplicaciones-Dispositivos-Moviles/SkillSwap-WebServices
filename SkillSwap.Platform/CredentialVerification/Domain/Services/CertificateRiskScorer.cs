@@ -10,7 +10,10 @@ public class CertificateRiskScorer : ICertificateRiskScorer
     public const int DuplicateCertificateNumberPoints = 30;
     public const int DuplicateVerificationCodePoints = 30;
     public const int OcrInconsistenciesPoints = 15;
-    public const int DuplicateFileHashPoints = 10;
+    /// <summary>
+    ///     A file already registered by another student is enough, on its own, to be high risk.
+    /// </summary>
+    public const int DuplicateFileHashPoints = RiskAssessment.HighRiskThreshold;
 
     /// <inheritdoc />
     public RiskAssessment CalculateRisk(

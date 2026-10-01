@@ -11,9 +11,9 @@ public interface ICertificateRepository : IBaseRepository<Certificate>
     Task<IEnumerable<Certificate>> FindByOwnerIdAsync(int ownerId, CancellationToken cancellationToken);
 
     /// <summary>
-    ///     Whether the same owner already uploaded a file with this hash.
+    ///     The certificate this owner already registered with this file hash, if any.
     /// </summary>
-    Task<bool> ExistsByFileHashAsync(int ownerId, string fileHash, CancellationToken cancellationToken);
+    Task<Certificate?> FindByFileHashAsync(int ownerId, string fileHash, CancellationToken cancellationToken);
 
     /// <summary>
     ///     Whether a different user already registered this certificate number.

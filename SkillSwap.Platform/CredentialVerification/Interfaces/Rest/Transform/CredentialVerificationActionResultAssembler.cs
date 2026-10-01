@@ -42,7 +42,8 @@ public static class CredentialVerificationActionResultAssembler
         if (result.IsSuccess) return successAction(result.Value!);
 
         var statusCode = ToStatusCodeFromError((CredentialVerificationError)result.Error!);
-        return problemDetailsFactory.CreateProblemDetails(controller, statusCode, result.Error, result.Message);
+        return problemDetailsFactory.CreateProblemDetails(controller, statusCode, result.Error, result.Message,
+            result.Details);
     }
 
     public static IActionResult ToErrorResult(
