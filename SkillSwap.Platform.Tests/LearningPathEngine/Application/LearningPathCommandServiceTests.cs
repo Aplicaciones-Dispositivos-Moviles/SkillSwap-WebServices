@@ -278,4 +278,96 @@ public class LearningPathCommandServiceTests
 
         AssertFailure(result, LearningPathError.NodeNotFound);
     }
+    
+        // ---------- Refresh certificate links ----------
+
+    private Task<Result<LearningPath>> Refresh(int studentId = 1)
+    {
+        return _service.Handle(new RefreshCertificateLinksCommand(studentId), CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task Refresh_LinksACertificateUploadedAfterThePathWasCreated()
+    {
+        await Declare();
+        _credentials.Certificates.Add(new CertificateSummary(30, "REST fundamentals", "Coursera"));
+        var savesBefore = _unitOfWork.CompleteCalls;
+
+        var result = await Refresh();
+
+        Assert.True(result.IsSuccess);
+        var node = result.Value!.Nodes.Single(n => n.SkillTag == "rest-api-design");
+        Assert.Equal(30, node.LinkedCertificateId);
+        Assert.Equal(NodeStatus.Locked, node.Status);
+        Assert.Equal(savesBefore + 1, _unitOfWork.CompleteCalls);
+    }
+
+    [Fact]
+    public async Task Refresh_WithNothingNewToLink_DoesNotSave()
+    {
+        await Declare();
+        var savesBefore = _unitOfWork.CompleteCalls;
+
+        var result = await Refresh();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(savesBefore, _unitOfWork.CompleteCalls);
+    }
+
+    [Fact]
+    public async Task Refresh_KeepsTheCertificateAlreadyLinked()
+    {
+        _credentials.Certificates.Add(new CertificateSummary(10, "REST basics", null));
+        await Declare();
+        _credentials.Certificates.Add(new CertificateSummary(11, "Advanced REST", null));
+        var savesBefore = _unitOfWork.CompleteCalls;
+
+        var result = await Refresh();
+
+        Assert.Equal(10, result.Value!.Nodes.Single(n => n.SkillTag == "rest-api-design").LinkedCertificateId);
+        Assert.Equal(savesBefore, _unitOfWork.CompleteCalls);
+    }
+
+    [Fact]
+    public async Task Refresh_ForAStudentWithoutPath_ReturnsPathNotFound()
+    {
+        AssertFailure(await Refresh(), LearningPathError.PathNotFound);
+    }
+
+    [Fact]
+    public async Task Refresh_OnACompletedPath_ChangesNothing()
+    {
+        await CompleteWholePathAsync("I want to learn HTTP");
+        _credentials.Certificates.Add(new CertificateSummary(30, "HTTP essentials", null));
+        var savesBefore = _unitOfWork.CompleteCalls;
+
+        var result = await Refresh();
+
+        Assert.True(result.IsSuccess);
+        Assert.All(result.Value!.Nodes, n => Assert.Null(n.LinkedCertificateId));
+        Assert.Equal(savesBefore, _unitOfWork.CompleteCalls);
+    }
+
+    [Fact]
+    public async Task Refresh_WhenTheCertificateLookupFails_StillReturnsThePath()
+    {
+        await Declare();
+        _credentials.ExceptionToThrow = new InvalidOperationException("credential context unavailable");
+
+        var result = await Refresh();
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public async Task Refresh_WhenSavingTheLinksFails_StillReturnsThePath()
+    {
+        await Declare();
+        _credentials.Certificates.Add(new CertificateSummary(30, "REST fundamentals", null));
+        _unitOfWork.ExceptionToThrow = new DbUpdateException("failure");
+
+        var result = await Refresh();
+
+        Assert.True(result.IsSuccess);
+    }
 }

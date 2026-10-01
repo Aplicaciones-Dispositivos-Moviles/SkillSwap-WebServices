@@ -33,4 +33,9 @@ public class FakeSkillTaxonomy(IReadOnlyDictionary<string, string[]> prerequisit
             ? result
             : throw new DomainException($"The skill '{skillTag}' is not in the taxonomy.");
     }
+    
+    public string NameOf(string skillTag)
+    {
+        return skillTag;
+    }
 }

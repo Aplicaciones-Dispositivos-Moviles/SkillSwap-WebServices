@@ -64,4 +64,11 @@ public class FakeQuestionGenerationService : IQuestionGenerationService
             .Select(i => LearningPathTestData.Question(offset + i)).ToList();
         return Task.FromResult(questions);
     }
+    public void Reset()
+    {
+        ExceptionToThrow = null;
+        QuestionCount = AssessmentBlueprint.QuestionCount;
+        Requests.Clear();
+        _calls = 0;
+    }
 }

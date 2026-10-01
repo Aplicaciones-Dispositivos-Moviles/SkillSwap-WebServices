@@ -177,4 +177,11 @@ public class SkillTaxonomyTests
         Assert.Equal(first, second);
         Assert.Equal(["rest-api-design", "authentication-jwt"], first);
     }
+    
+    [Fact]
+    public void Taxonomy_ExposesTheDisplayNameAndFallsBackToTheTagForUnknownSkills()
+    {
+        Assert.Equal("REST API design", Taxonomy.NameOf("rest-api-design"));
+        Assert.Equal("cooking", Taxonomy.NameOf("cooking"));
+    }
 }
