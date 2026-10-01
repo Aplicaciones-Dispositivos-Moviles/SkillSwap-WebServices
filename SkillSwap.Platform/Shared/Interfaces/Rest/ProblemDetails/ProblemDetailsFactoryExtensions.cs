@@ -11,14 +11,16 @@ public static class ProblemDetailsFactoryExtensions
 {
     /// <summary>
     ///     Creates an <see cref="IActionResult" /> wrapping a <see cref="Microsoft.AspNetCore.Mvc.ProblemDetails" />
-    ///     object, using the given status code, domain error and message.
+    ///     object, using the given status code, domain error and message. The optional extensions are
+    ///     added as extra members of the response (e.g. "existingCertificateId").
     /// </summary>
     public static IActionResult CreateProblemDetails(
         this ProblemDetailsFactory problemDetailsFactory,
         ControllerBase controller,
         int statusCode,
         Enum? error,
-        string message)
+        string message,
+        IReadOnlyDictionary<string, object>? extensions = null)
     {
         var problemDetails = problemDetailsFactory.CreateProblemDetails(
             controller.HttpContext,
@@ -26,6 +28,10 @@ public static class ProblemDetailsFactoryExtensions
             title: error?.ToString() ?? "Error",
             detail: message
         );
+
+        if (extensions is not null)
+            foreach (var (key, value) in extensions)
+                problemDetails.Extensions[key] = value;
 
         return new ObjectResult(problemDetails) { StatusCode = statusCode };
     }

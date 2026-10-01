@@ -42,4 +42,31 @@
     <data name="BioTooLong" xml:space="preserve">
         <value>La biografía no puede exceder los 1000 caracteres.</value>
     </data>
+    <data name="FileRequired" xml:space="preserve">
+        <value>Se requiere el archivo del certificado.</value>
+    </data>
+    <data name="InvalidFileType" xml:space="preserve">
+        <value>Solo se aceptan archivos JPG, PNG y PDF.</value>
+    </data>
+    <data name="FileTooLarge" xml:space="preserve">
+        <value>El archivo no puede superar los 10 MB.</value>
+    </data>
+    <data name="DuplicateFile" xml:space="preserve">
+        <value>Ya subiste este archivo anteriormente.</value>
+    </data>
+    <data name="FieldTooLong" xml:space="preserve">
+        <value>Uno de los campos del certificado supera su longitud máxima.</value>
+    </data>
+    <data name="CertificateNotFound" xml:space="preserve">
+        <value>No se encontró el certificado indicado.</value>
+    </data>
+    <data name="NotCertificateOwner" xml:space="preserve">
+        <value>Solo puedes acceder a tus propios certificados.</value>
+    </data>
+    <data name="InvalidStatusTransition" xml:space="preserve">
+        <value>El certificado no está en un estado que permita esta operación.</value>
+    </data>
+    <data name="StorageError" xml:space="preserve">
+        <value>No se pudo guardar el archivo. Inténtalo de nuevo.</value>
+    </data>
 </root>

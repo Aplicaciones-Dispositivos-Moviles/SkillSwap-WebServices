@@ -42,4 +42,31 @@
     <data name="BioTooLong" xml:space="preserve">
         <value>The bio cannot exceed 1000 characters.</value>
     </data>
+    <data name="FileRequired" xml:space="preserve">
+        <value>A certificate file is required.</value>
+    </data>
+    <data name="InvalidFileType" xml:space="preserve">
+        <value>Only JPG, PNG and PDF files are accepted.</value>
+    </data>
+    <data name="FileTooLarge" xml:space="preserve">
+        <value>The file cannot exceed 10 MB.</value>
+    </data>
+    <data name="DuplicateFile" xml:space="preserve">
+        <value>You have already uploaded this file.</value>
+    </data>
+    <data name="FieldTooLong" xml:space="preserve">
+        <value>One of the certificate fields exceeds its maximum length.</value>
+    </data>
+    <data name="CertificateNotFound" xml:space="preserve">
+        <value>The specified certificate was not found.</value>
+    </data>
+    <data name="NotCertificateOwner" xml:space="preserve">
+        <value>You can only access your own certificates.</value>
+    </data>
+    <data name="InvalidStatusTransition" xml:space="preserve">
+        <value>The certificate is not in a state that allows this operation.</value>
+    </data>
+    <data name="StorageError" xml:space="preserve">
+        <value>The file could not be stored. Please try again.</value>
+    </data>
 </root>

@@ -2,12 +2,14 @@
 
 public class Result<T>
 {
-    protected Result(bool isSuccess, T? value, string message, Enum? error)
+    protected Result(bool isSuccess, T? value, string message, Enum? error,
+        IReadOnlyDictionary<string, object>? details = null)
     {
         IsSuccess = isSuccess;
         Value = value;
         Message = message;
         Error = error;
+        Details = details;
     }
 
     public bool IsSuccess { get; }
@@ -15,6 +17,12 @@ public class Result<T>
     public T? Value { get; }
     public string Message { get; }
     public Enum? Error { get; }
+
+    /// <summary>
+    ///     Optional structured data about a failure, such as the id of the resource that caused a
+    ///     conflict. Exposed to clients as extension members of the ProblemDetails response.
+    /// </summary>
+    public IReadOnlyDictionary<string, object>? Details { get; }
 
     public static Result<T> Success(T value)
     {
@@ -24,6 +32,11 @@ public class Result<T>
     public static Result<T> Failure(Enum error, string message)
     {
         return new Result<T>(false, default, message, error);
+    }
+
+    public static Result<T> Failure(Enum error, string message, IReadOnlyDictionary<string, object> details)
+    {
+        return new Result<T>(false, default, message, error, details);
     }
 }
 
