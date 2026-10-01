@@ -69,4 +69,34 @@
     <data name="StorageError" xml:space="preserve">
         <value>The file could not be stored. Please try again.</value>
     </data>
+    <data name="InvalidGoal" xml:space="preserve">
+        <value>The goal must be between 1 and 500 characters long.</value>
+    </data>
+    <data name="GoalNotInterpretable" xml:space="preserve">
+        <value>We could not match your goal with any skill. Try describing it with more specific terms, such as a technology or a role.</value>
+    </data>
+    <data name="GoalAlreadyAchieved" xml:space="preserve">
+        <value>You have already demonstrated every skill required by this goal.</value>
+    </data>
+    <data name="ActivePathAlreadyExists" xml:space="preserve">
+        <value>You already have an active learning path. Complete it before declaring a new goal.</value>
+    </data>
+    <data name="PathNotFound" xml:space="preserve">
+        <value>The learning path was not found.</value>
+    </data>
+    <data name="NotPathOwner" xml:space="preserve">
+        <value>You can only access your own learning path.</value>
+    </data>
+    <data name="NodeNotFound" xml:space="preserve">
+        <value>The specified node was not found.</value>
+    </data>
+    <data name="NodeLocked" xml:space="preserve">
+        <value>This node is locked: complete its prerequisites first.</value>
+    </data>
+    <data name="NodeAlreadyCompleted" xml:space="preserve">
+        <value>This node is already completed.</value>
+    </data>
+    <data name="QuestionGenerationFailed" xml:space="preserve">
+        <value>The assessment could not be generated. Please try again.</value>
+    </data>
 </root>
