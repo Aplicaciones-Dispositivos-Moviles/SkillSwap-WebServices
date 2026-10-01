@@ -7,6 +7,7 @@ using SkillSwap.Platform.Iam.Domain.Model.ValueObjects;
 using SkillSwap.Platform.Iam.Domain.Services;
 using SkillSwap.Platform.Iam.Interfaces.Rest.Resources;
 using SkillSwap.Platform.Shared.Infrastructure.Persistence.EntityFrameworkCore.Configuration;
+using SkillSwap.Platform.LearningPathEngine.Domain.Services;
 
 namespace SkillSwap.Platform.Tests.Support;
 
@@ -35,6 +36,12 @@ public static class TestApi
     private static readonly Lazy<ApiFactory> LazyFactory = new(CreateFactory);
 
     public static ApiFactory Factory => LazyFactory.Value;
+    
+    /// <summary>
+    ///     The fake question generator the test host uses instead of Gemini.
+    /// </summary>
+    public static FakeQuestionGenerationService QuestionGenerator =>
+        (FakeQuestionGenerationService)Factory.Services.GetRequiredService<IQuestionGenerationService>();
 
     private static ApiFactory CreateFactory()
     {
@@ -60,6 +67,7 @@ public static class TestApi
         using var scope = CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await context.Database.ExecuteSqlRawAsync(TruncateAllTables);
+        QuestionGenerator.Reset();
     }
 
     public static string EmailFor(string username)

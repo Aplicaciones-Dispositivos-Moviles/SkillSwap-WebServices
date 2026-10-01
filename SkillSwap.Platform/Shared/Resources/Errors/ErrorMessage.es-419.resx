@@ -69,4 +69,34 @@
     <data name="StorageError" xml:space="preserve">
         <value>No se pudo guardar el archivo. Inténtalo de nuevo.</value>
     </data>
+    <data name="InvalidGoal" xml:space="preserve">
+        <value>La meta debe tener entre 1 y 500 caracteres.</value>
+    </data>
+    <data name="GoalNotInterpretable" xml:space="preserve">
+        <value>No pudimos relacionar tu meta con ninguna habilidad. Intenta describirla con términos más específicos, como una tecnología o un rol.</value>
+    </data>
+    <data name="GoalAlreadyAchieved" xml:space="preserve">
+        <value>Ya demostraste todas las habilidades que requiere esta meta.</value>
+    </data>
+    <data name="ActivePathAlreadyExists" xml:space="preserve">
+        <value>Ya tienes una ruta de aprendizaje activa. Complétala antes de declarar una nueva meta.</value>
+    </data>
+    <data name="PathNotFound" xml:space="preserve">
+        <value>No se encontró la ruta de aprendizaje.</value>
+    </data>
+    <data name="NotPathOwner" xml:space="preserve">
+        <value>Solo puedes acceder a tu propia ruta de aprendizaje.</value>
+    </data>
+    <data name="NodeNotFound" xml:space="preserve">
+        <value>No se encontró el nodo indicado.</value>
+    </data>
+    <data name="NodeLocked" xml:space="preserve">
+        <value>Este nodo está bloqueado: completa primero sus prerrequisitos.</value>
+    </data>
+    <data name="NodeAlreadyCompleted" xml:space="preserve">
+        <value>Este nodo ya está completado.</value>
+    </data>
+    <data name="QuestionGenerationFailed" xml:space="preserve">
+        <value>No se pudo generar la evaluación. Inténtalo de nuevo.</value>
+    </data>
 </root>

@@ -28,6 +28,17 @@ using SkillSwap.Platform.CredentialVerification.Domain.Services;
 using SkillSwap.Platform.CredentialVerification.Infrastructure.FileStorage.Configuration;
 using SkillSwap.Platform.CredentialVerification.Infrastructure.FileStorage.Services;
 using SkillSwap.Platform.CredentialVerification.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using SkillSwap.Platform.CredentialVerification.Application.ACL;
+using SkillSwap.Platform.LearningPathEngine.Application.CommandServices;
+using SkillSwap.Platform.LearningPathEngine.Application.Internal.CommandServices;
+using SkillSwap.Platform.LearningPathEngine.Application.Internal.OutboundServices;
+using SkillSwap.Platform.LearningPathEngine.Application.Internal.QueryServices;
+using SkillSwap.Platform.LearningPathEngine.Application.QueryServices;
+using SkillSwap.Platform.LearningPathEngine.Domain.Repositories;
+using SkillSwap.Platform.LearningPathEngine.Domain.Services;
+using SkillSwap.Platform.LearningPathEngine.Infrastructure.AI;
+using SkillSwap.Platform.LearningPathEngine.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using SkillSwap.Platform.LearningPathEngine.Infrastructure.Taxonomy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -103,6 +114,28 @@ builder.Services.AddScoped<ICertificateCommandService, CertificateCommandService
 builder.Services.AddScoped<ICertificateQueryService, CertificateQueryService>();
 builder.Services.AddScoped<ICertificateRiskScorer, CertificateRiskScorer>();
 builder.Services.AddSingleton<IFileStorageService, CloudinaryStorageService>();
+builder.Services.AddScoped<ICredentialContextFacade, CredentialContextFacade>();
+
+
+// Learning Path Engine Bounded Context
+builder.Services.AddOptions<GeminiSettings>()
+    .Bind(builder.Configuration.GetSection("Gemini"))
+    .Validate(s => !string.IsNullOrWhiteSpace(s.ApiKey) && !string.IsNullOrWhiteSpace(s.Model),
+        "Gemini:ApiKey and Gemini:Model must be configured.")
+    .ValidateOnStart();
+// Loaded and validated eagerly: an inconsistent catalog stops the application at startup.
+builder.Services.AddSingleton(SkillCatalog.LoadEmbedded());
+builder.Services.AddSingleton<ISkillTaxonomy, JsonSkillTaxonomy>();
+builder.Services.AddSingleton<ISkillTaxonomyMatcher, SkillTaxonomyMatcher>();
+builder.Services.AddScoped<ISkillGapAnalyzer, SkillGapAnalyzer>();
+builder.Services.AddScoped<ILearningPathBuilder, LearningPathBuilder>();
+builder.Services.AddScoped<ILearningPathRepository, LearningPathRepository>();
+builder.Services.AddScoped<IAssessmentBlueprintRepository, AssessmentBlueprintRepository>();
+builder.Services.AddScoped<ILearningPathCommandService, LearningPathCommandService>();
+builder.Services.AddScoped<IAssessmentBlueprintCommandService, AssessmentBlueprintCommandService>();
+builder.Services.AddScoped<ILearningPathQueryService, LearningPathQueryService>();
+builder.Services.AddScoped<IAssessmentBlueprintQueryService, AssessmentBlueprintQueryService>();
+builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerator>();
 
 var app = builder.Build();
 

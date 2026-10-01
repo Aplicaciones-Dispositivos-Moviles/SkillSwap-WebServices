@@ -38,4 +38,8 @@
     </Compile>
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="LearningPathEngine\Infrastructure\Taxonomy\skill-catalog.json" LogicalName="skill-catalog.json" />
+  </ItemGroup>
+
 </Project>
