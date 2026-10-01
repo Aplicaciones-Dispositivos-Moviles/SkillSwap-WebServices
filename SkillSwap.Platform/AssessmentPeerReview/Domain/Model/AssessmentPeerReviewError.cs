@@ -7,6 +7,8 @@ public enum AssessmentPeerReviewError
     InvalidEvidenceUrl,
     InvalidSkillTag,
     RubricNotesRequired,
+    InvalidDecision,
+    RubricNotesTooLong,
     BlueprintNotFound,
     AttemptNotFound,
     CaseNotFound,
