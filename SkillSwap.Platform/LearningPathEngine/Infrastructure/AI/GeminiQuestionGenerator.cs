@@ -1,6 +1,9 @@
-﻿using System.Text;
+﻿using System.Diagnostics;
+using System.Net;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using SkillSwap.Platform.LearningPathEngine.Domain.Model.Aggregates;
 using SkillSwap.Platform.LearningPathEngine.Domain.Model.Entities;
@@ -13,20 +16,40 @@ namespace SkillSwap.Platform.LearningPathEngine.Infrastructure.AI;
 ///     every question goes through the <see cref="Question" /> constructor, so anything that breaks the
 ///     contract (wrong count, repeated answers, missing correct index...) is rejected.
 /// </summary>
+/// <remarks>
+///     Transient provider failures (429 and 5xx) are retried and, when configured, the request moves to a
+///     fallback model. Timeouts and permanent errors are not retried.
+/// </remarks>
 public partial class GeminiQuestionGenerator : IQuestionGenerationService
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    private static readonly HashSet<HttpStatusCode> TransientStatuses =
+    [
+        HttpStatusCode.TooManyRequests,
+        HttpStatusCode.InternalServerError,
+        HttpStatusCode.BadGateway,
+        HttpStatusCode.ServiceUnavailable,
+        HttpStatusCode.GatewayTimeout
+    ];
+
     private readonly HttpClient _httpClient;
+    private readonly ILogger<GeminiQuestionGenerator> _logger;
     private readonly GeminiSettings _settings;
 
-    public GeminiQuestionGenerator(HttpClient httpClient, IOptions<GeminiSettings> options)
+    public GeminiQuestionGenerator(HttpClient httpClient, IOptions<GeminiSettings> options,
+        ILogger<GeminiQuestionGenerator> logger)
     {
         _httpClient = httpClient;
+        _logger = logger;
         _settings = options.Value;
         _httpClient.BaseAddress ??= new Uri(_settings.BaseUrl.EndsWith('/') ? _settings.BaseUrl : _settings.BaseUrl + "/");
         _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
     }
+
+    private bool HasFallback =>
+        !string.IsNullOrWhiteSpace(_settings.FallbackModel)
+        && !string.Equals(_settings.FallbackModel, _settings.Model, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Question>> GenerateQuestionsAsync(string skillTag,
@@ -36,7 +59,21 @@ public partial class GeminiQuestionGenerator : IQuestionGenerationService
         if (!SkillTagPattern().IsMatch(skillTag ?? string.Empty))
             throw new ArgumentException("The skill tag is not valid.", nameof(skillTag));
 
-        var answerText = await RequestAsync(BuildRequestBody(skillTag), cancellationToken);
+        var body = BuildRequestBody(skillTag);
+
+        string answerText;
+        try
+        {
+            answerText = await RequestWithRetriesAsync(_settings.Model, body, cancellationToken);
+        }
+        catch (GeminiUnavailableException exception) when (HasFallback)
+        {
+            _logger.LogWarning(exception,
+                "Gemini model {Model} is unavailable; trying the fallback model {FallbackModel}",
+                _settings.Model, _settings.FallbackModel);
+            answerText = await RequestWithRetriesAsync(_settings.FallbackModel!, body, cancellationToken);
+        }
+
         return ParseQuestions(answerText);
     }
 
@@ -75,28 +112,54 @@ public partial class GeminiQuestionGenerator : IQuestionGenerationService
                  """;
     }
 
-    private async Task<string> RequestAsync(string body, CancellationToken cancellationToken)
+    /// <summary>
+    ///     Sends the request to one model, retrying (with a doubling wait) only while the provider reports
+    ///     a transient failure.
+    /// </summary>
+    private async Task<string> RequestWithRetriesAsync(string model, string body, CancellationToken cancellationToken)
+    {
+        for (var attempt = 0;; attempt++)
+            try
+            {
+                return await SendAsync(model, body, attempt + 1, cancellationToken);
+            }
+            catch (GeminiUnavailableException) when (attempt < _settings.MaxRetries)
+            {
+                var delay = TimeSpan.FromMilliseconds(_settings.RetryDelayMilliseconds * Math.Pow(2, attempt));
+                await Task.Delay(delay, cancellationToken);
+            }
+    }
+
+    private async Task<string> SendAsync(string model, string body, int attempt, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post,
-            $"models/{Uri.EscapeDataString(_settings.Model)}:generateContent")
+            $"models/{Uri.EscapeDataString(model)}:generateContent")
         {
             Content = new StringContent(body, Encoding.UTF8, "application/json")
         };
         request.Headers.Add("x-goog-api-key", _settings.ApiKey);
 
+        var stopwatch = Stopwatch.StartNew();
         try
         {
             using var response = await _httpClient.SendAsync(request, cancellationToken);
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            if (!response.IsSuccessStatusCode)
-                throw new InvalidOperationException(
-                    $"Gemini responded {(int)response.StatusCode} {response.StatusCode}: {Truncate(content)}");
+            _logger.LogInformation("Gemini model {Model}, attempt {Attempt}: {StatusCode} in {ElapsedMs} ms",
+                model, attempt, (int)response.StatusCode, stopwatch.ElapsedMilliseconds);
 
-            return ExtractText(content);
+            if (response.IsSuccessStatusCode) return ExtractText(content);
+
+            var message = $"Gemini model '{model}' responded {(int)response.StatusCode} {response.StatusCode}: " +
+                          Truncate(content);
+            throw TransientStatuses.Contains(response.StatusCode)
+                ? new GeminiUnavailableException(message)
+                : new InvalidOperationException(message);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
             // The HttpClient timeout, not a cancellation requested by the caller.
+            _logger.LogWarning("Gemini model {Model}, attempt {Attempt}: no answer after {ElapsedMs} ms",
+                model, attempt, stopwatch.ElapsedMilliseconds);
             throw new TimeoutException("Gemini did not answer in time.");
         }
     }
