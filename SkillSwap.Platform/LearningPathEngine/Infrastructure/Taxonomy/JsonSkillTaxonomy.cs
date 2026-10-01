@@ -22,4 +22,10 @@ public class JsonSkillTaxonomy(SkillCatalog catalog) : ISkillTaxonomy
             ? skill.Prerequisites
             : throw new DomainException($"The skill '{skillTag}' is not in the taxonomy.");
     }
+    
+    /// <inheritdoc />
+    public string NameOf(string skillTag)
+    {
+        return catalog.TryGet(skillTag, out var skill) ? skill.Name : skillTag;
+    }
 }

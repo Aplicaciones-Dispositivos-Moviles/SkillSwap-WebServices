@@ -97,14 +97,47 @@ public class LearningPathCommandService(
             return FailureFrom(exception, "complete the node {PathNodeId}", command.PathNodeId);
         }
     }
+    
+    /// <inheritdoc />
+    public async Task<Result<LearningPath>> Handle(RefreshCertificateLinksCommand command,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var path = await learningPathRepository.FindLatestByStudentIdAsync(command.StudentId, cancellationToken);
+            if (path is null) return Failure(LearningPathError.PathNotFound);
+
+            // Only an active path can still change. The links are supporting evidence, so a failure to
+            // save them must not fail the read: the next read tries again.
+            if (path.Status == PathStatus.Active && await LinkEvidenceAsync(path, command.StudentId, cancellationToken))
+                try
+                {
+                    learningPathRepository.Update(path);
+                    await unitOfWork.CompleteAsync(cancellationToken);
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    logger.LogWarning(exception, "The certificate links of student {StudentId} could not be saved",
+                        command.StudentId);
+                }
+
+            return Result<LearningPath>.Success(path);
+        }
+        catch (Exception exception)
+        {
+            return FailureFrom(exception, "refresh the certificate links of student {StudentId}", command.StudentId);
+        }
+    }
 
     /// <summary>
     ///     Links the student's certificates to the nodes whose skill their course matches. A certificate is
     ///     only supporting evidence: it never completes a node. It is informational, so a failure here
-    ///     must not prevent the path from being created.
+    ///     must not prevent the path from being created or read.
     /// </summary>
-    private async Task LinkEvidenceAsync(LearningPath path, int studentId, CancellationToken cancellationToken)
+    /// <returns>True when at least one new link was made.</returns>
+    private async Task<bool> LinkEvidenceAsync(LearningPath path, int studentId, CancellationToken cancellationToken)
     {
+        var linkedAny = false;
         try
         {
             var certificates = await credentialContextFacade.GetEvidenceCertificatesAsync(studentId,
@@ -113,7 +146,7 @@ public class LearningPathCommandService(
             {
                 if (string.IsNullOrWhiteSpace(certificate.CourseName)) continue;
                 foreach (var skillTag in taxonomyMatcher.Match(certificate.CourseName))
-                    path.LinkCertificateToSkill(skillTag, certificate.Id);
+                    linkedAny |= path.LinkCertificateToSkill(skillTag, certificate.Id);
             }
         }
         catch (OperationCanceledException)
@@ -122,9 +155,11 @@ public class LearningPathCommandService(
         }
         catch (Exception exception)
         {
-            logger.LogWarning(exception, "Certificates could not be linked to the new path of student {StudentId}",
+            logger.LogWarning(exception, "Certificates could not be linked to the path of student {StudentId}",
                 studentId);
         }
+
+        return linkedAny;
     }
 
     private Result<LearningPath> Failure(LearningPathError error, IReadOnlyDictionary<string, object>? details = null)

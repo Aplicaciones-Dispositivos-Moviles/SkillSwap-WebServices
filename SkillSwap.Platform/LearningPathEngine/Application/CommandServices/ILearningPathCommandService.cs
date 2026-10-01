@@ -18,4 +18,10 @@ public interface ILearningPathCommandService
     ///     Handle complete path node command, issued once the student approved the node's assessment.
     /// </summary>
     Task<Result<LearningPath>> Handle(CompletePathNodeCommand command, CancellationToken cancellationToken);
+    
+    /// <summary>
+    ///     Handle refresh certificate links command: returns the student's latest path after linking the
+    ///     certificates uploaded since it was created. Linking is best effort and never fails the read.
+    /// </summary>
+    Task<Result<LearningPath>> Handle(RefreshCertificateLinksCommand command, CancellationToken cancellationToken);
 }

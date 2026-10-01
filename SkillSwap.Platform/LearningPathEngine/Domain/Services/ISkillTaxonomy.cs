@@ -12,4 +12,10 @@ public interface ISkillTaxonomy
     /// </summary>
     /// <exception cref="Shared.Domain.Exceptions.DomainException">Thrown when the skill is not in the taxonomy.</exception>
     IReadOnlyList<string> PrerequisitesOf(string skillTag);
+    
+    /// <summary>
+    ///     The display name of a skill, or the tag itself when the skill is not in the taxonomy (so a path
+    ///     saved before a catalog edit can still be shown).
+    /// </summary>
+    string NameOf(string skillTag);
 }
