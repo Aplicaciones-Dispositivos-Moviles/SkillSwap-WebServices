@@ -17,8 +17,8 @@ namespace SkillSwap.Platform.LearningPathEngine.Infrastructure.AI;
 ///     contract (wrong count, repeated answers, missing correct index...) is rejected.
 /// </summary>
 /// <remarks>
-///     Transient provider failures (429 and 5xx) are retried and, when configured, the request moves to a
-///     fallback model. Timeouts and permanent errors are not retried.
+///     Availability problems (429, 5xx, no answer in time, retired model) are retried and then handed over
+///     to the next model of the configured chain. Permanent errors and contract violations are not.
 /// </remarks>
 public partial class GeminiQuestionGenerator : IQuestionGenerationService
 {
@@ -47,9 +47,16 @@ public partial class GeminiQuestionGenerator : IQuestionGenerationService
         _httpClient.Timeout = TimeSpan.FromSeconds(_settings.TimeoutSeconds);
     }
 
-    private bool HasFallback =>
-        !string.IsNullOrWhiteSpace(_settings.FallbackModel)
-        && !string.Equals(_settings.FallbackModel, _settings.Model, StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    ///     The main model followed by the fallbacks, without blanks or repeats.
+    /// </summary>
+    private IReadOnlyList<string> ModelChain =>
+        new[] { _settings.Model }
+            .Concat(_settings.FallbackModels ?? [])
+            .Where(model => !string.IsNullOrWhiteSpace(model))
+            .Select(model => model.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
     /// <inheritdoc />
     public async Task<IReadOnlyList<Question>> GenerateQuestionsAsync(string skillTag,
@@ -59,30 +66,69 @@ public partial class GeminiQuestionGenerator : IQuestionGenerationService
         if (!SkillTagPattern().IsMatch(skillTag ?? string.Empty))
             throw new ArgumentException("The skill tag is not valid.", nameof(skillTag));
 
-        var body = BuildRequestBody(skillTag);
+        // One overall budget for the whole operation, however many retries and models are tried.
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        budget.CancelAfter(TimeSpan.FromSeconds(_settings.TotalTimeoutSeconds));
 
-        string answerText;
         try
         {
-            answerText = await RequestWithRetriesAsync(_settings.Model, body, cancellationToken);
+            var answerText = await RequestFromAnyModelAsync(skillTag, budget.Token);
+            return ParseQuestions(answerText);
         }
-        catch (GeminiUnavailableException exception) when (HasFallback)
+        catch (OperationCanceledException) when (budget.IsCancellationRequested
+                                                  && !cancellationToken.IsCancellationRequested)
         {
-            _logger.LogWarning(exception,
-                "Gemini model {Model} is unavailable; trying the fallback model {FallbackModel}",
-                _settings.Model, _settings.FallbackModel);
-            answerText = await RequestWithRetriesAsync(_settings.FallbackModel!, body, cancellationToken);
+            throw new TimeoutException("Gemini did not answer within the allowed time.");
         }
-
-        return ParseQuestions(answerText);
     }
 
-    private string BuildRequestBody(string skillTag)
+    private async Task<string> RequestFromAnyModelAsync(string skillTag, CancellationToken cancellationToken)
+    {
+        var models = ModelChain;
+        for (var index = 0; index < models.Count; index++)
+            try
+            {
+                return await RequestFromModelAsync(models[index], skillTag, cancellationToken);
+            }
+            catch (Exception exception) when (index < models.Count - 1 && IsModelUnavailable(exception))
+            {
+                _logger.LogWarning(exception, "Gemini model {Model} cannot serve the request; trying {NextModel}",
+                    models[index], models[index + 1]);
+            }
+
+        throw new InvalidOperationException("No Gemini model is configured.");
+    }
+
+    private static bool IsModelUnavailable(Exception exception)
+    {
+        return exception is GeminiUnavailableException or TimeoutException;
+    }
+
+    /// <summary>
+    ///     Asks one model. The reasoning-effort parameter is best effort: a model that rejects it is asked
+    ///     again without it.
+    /// </summary>
+    private async Task<string> RequestFromModelAsync(string model, string skillTag,
+        CancellationToken cancellationToken)
+    {
+        var withThinking = !string.IsNullOrWhiteSpace(_settings.ThinkingLevel);
+        try
+        {
+            return await RequestWithRetriesAsync(model, BuildRequestBody(skillTag, withThinking), cancellationToken);
+        }
+        catch (ThinkingNotSupportedException) when (withThinking)
+        {
+            _logger.LogWarning("Gemini model {Model} does not accept thinkingLevel; asking again without it", model);
+            return await RequestWithRetriesAsync(model, BuildRequestBody(skillTag, false), cancellationToken);
+        }
+    }
+
+    private string BuildRequestBody(string skillTag, bool withThinking)
     {
         var generationConfig = new Dictionary<string, object> { ["responseMimeType"] = "application/json" };
-        if (!string.IsNullOrWhiteSpace(_settings.ThinkingLevel))
+        if (withThinking)
             generationConfig["thinkingConfig"] = new Dictionary<string, object>
-                { ["thinkingLevel"] = _settings.ThinkingLevel };
+                { ["thinkingLevel"] = _settings.ThinkingLevel! };
 
         var body = new
         {
@@ -123,7 +169,8 @@ public partial class GeminiQuestionGenerator : IQuestionGenerationService
             {
                 return await SendAsync(model, body, attempt + 1, cancellationToken);
             }
-            catch (GeminiUnavailableException) when (attempt < _settings.MaxRetries)
+            catch (GeminiUnavailableException exception) when (exception.IsRetryable
+                                                               && attempt < _settings.MaxRetries)
             {
                 var delay = TimeSpan.FromMilliseconds(_settings.RetryDelayMilliseconds * Math.Pow(2, attempt));
                 await Task.Delay(delay, cancellationToken);
@@ -151,13 +198,23 @@ public partial class GeminiQuestionGenerator : IQuestionGenerationService
 
             var message = $"Gemini model '{model}' responded {(int)response.StatusCode} {response.StatusCode}: " +
                           Truncate(content);
+
+            if (response.StatusCode == HttpStatusCode.BadRequest
+                && body.Contains("thinkingConfig", StringComparison.Ordinal)
+                && content.Contains("thinking", StringComparison.OrdinalIgnoreCase))
+                throw new ThinkingNotSupportedException(message);
+
+            // A retired model will not come back: skip to the next one instead of retrying it.
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                throw new GeminiUnavailableException(message, false);
+
             throw TransientStatuses.Contains(response.StatusCode)
                 ? new GeminiUnavailableException(message)
                 : new InvalidOperationException(message);
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            // The HttpClient timeout, not a cancellation requested by the caller.
+            // The HttpClient timeout of this attempt, not a cancellation requested by the caller.
             _logger.LogWarning("Gemini model {Model}, attempt {Attempt}: no answer after {ElapsedMs} ms",
                 model, attempt, stopwatch.ElapsedMilliseconds);
             throw new TimeoutException("Gemini did not answer in time.");
@@ -233,6 +290,8 @@ public partial class GeminiQuestionGenerator : IQuestionGenerationService
 
     [GeneratedRegex(@"^\s*```(?:json)?\s*|\s*```\s*$")]
     private static partial Regex CodeFence();
+
+    private sealed class ThinkingNotSupportedException(string message) : InvalidOperationException(message);
 
     private sealed class QuestionDto
     {
