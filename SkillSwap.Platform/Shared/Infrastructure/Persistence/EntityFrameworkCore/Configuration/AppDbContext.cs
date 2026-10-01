@@ -2,6 +2,7 @@
 using SkillSwap.Platform.CredentialVerification.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using SkillSwap.Platform.Iam.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
+using SkillSwap.Platform.AssessmentPeerReview.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 
 namespace SkillSwap.Platform.Shared.Infrastructure.Persistence.EntityFrameworkCore.Configuration;
 
@@ -21,5 +22,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         builder.ApplyIamConfiguration();
         builder.ApplyCredentialVerificationConfiguration();
         builder.ApplyLearningPathEngineConfiguration();
+        builder.ApplyLearningPathEngineConfiguration();
+        builder.ApplyAssessmentPeerReviewConfiguration();
     }
 }
