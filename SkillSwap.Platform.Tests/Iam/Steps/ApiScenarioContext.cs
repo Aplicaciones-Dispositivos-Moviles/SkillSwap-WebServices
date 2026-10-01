@@ -15,6 +15,11 @@ public class ApiScenarioContext
     public Dictionary<string, SignedInUser> Users { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
+    ///     The id of the last certificate each student registered during the scenario.
+    /// </summary>
+    public Dictionary<string, int> CertificateIds { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     ///     Deserializes the last response body. Safe to call several times in the same scenario,
     ///     unlike ReadFromJsonAsync, which closes the content stream after the first read.
     /// </summary>
