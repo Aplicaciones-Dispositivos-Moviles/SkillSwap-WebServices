@@ -168,4 +168,7 @@
     <data name="VerifierSkillAlreadyEnabled" xml:space="preserve">
         <value>Ya estás habilitado como Verificador de esta habilidad.</value>
     </data>
+    <data name="InvalidAvailability" xml:space="preserve">
+        <value>La disponibilidad debe ser true o false.</value>
+    </data>
 </root>

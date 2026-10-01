@@ -8,6 +8,7 @@ public enum AssessmentPeerReviewError
     InvalidSkillTag,
     RubricNotesRequired,
     InvalidDecision,
+    InvalidAvailability,
     RubricNotesTooLong,
     BlueprintNotFound,
     AttemptNotFound,

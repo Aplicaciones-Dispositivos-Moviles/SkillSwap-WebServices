@@ -168,4 +168,7 @@
     <data name="VerifierSkillAlreadyEnabled" xml:space="preserve">
         <value>You are already enabled as a verifier for this skill.</value>
     </data>
+    <data name="InvalidAvailability" xml:space="preserve">
+        <value>The availability must be true or false.</value>
+    </data>
 </root>
