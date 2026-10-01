@@ -39,6 +39,17 @@ using SkillSwap.Platform.LearningPathEngine.Domain.Services;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.AI;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.Taxonomy;
+using SkillSwap.Platform.LearningPathEngine.Application.ACL;
+using SkillSwap.Platform.AssessmentPeerReview.Application.CommandServices;
+using SkillSwap.Platform.AssessmentPeerReview.Application.Internal;
+using SkillSwap.Platform.AssessmentPeerReview.Application.Internal.CommandServices;
+using SkillSwap.Platform.AssessmentPeerReview.Application.Internal.QueryServices;
+using SkillSwap.Platform.AssessmentPeerReview.Application.QueryServices;
+using SkillSwap.Platform.AssessmentPeerReview.Domain.Repositories;
+using SkillSwap.Platform.AssessmentPeerReview.Domain.Services;
+using SkillSwap.Platform.AssessmentPeerReview.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using SkillSwap.Platform.Shared.Domain.Events;
+using SkillSwap.Platform.Shared.Infrastructure.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -135,6 +146,20 @@ builder.Services.AddScoped<ILearningPathCommandService, LearningPathCommandServi
 builder.Services.AddScoped<IAssessmentBlueprintCommandService, AssessmentBlueprintCommandService>();
 builder.Services.AddScoped<ILearningPathQueryService, LearningPathQueryService>();
 builder.Services.AddScoped<IAssessmentBlueprintQueryService, AssessmentBlueprintQueryService>();
+// Assessment & Peer Review
+builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
+builder.Services.AddScoped<IAssessmentAttemptRepository, AssessmentAttemptRepository>();
+builder.Services.AddScoped<IVerifierProfileRepository, VerifierProfileRepository>();
+builder.Services.AddScoped<IVerificationCaseRepository, VerificationCaseRepository>();
+builder.Services.AddScoped<IVerifierMatcher, VerifierMatcher>();
+builder.Services.AddScoped<ICaseAssignmentService, CaseAssignmentService>();
+builder.Services.AddScoped<IAssessmentAttemptCommandService, AssessmentAttemptCommandService>();
+builder.Services.AddScoped<IVerificationCaseCommandService, VerificationCaseCommandService>();
+builder.Services.AddScoped<IVerifierProfileCommandService, VerifierProfileCommandService>();
+builder.Services.AddScoped<IAssessmentAttemptQueryService, AssessmentAttemptQueryService>();
+builder.Services.AddScoped<IVerificationCaseQueryService, VerificationCaseQueryService>();
+builder.Services.AddScoped<IVerifierProfileQueryService, VerifierProfileQueryService>();
+builder.Services.AddScoped<ILearningPathContextFacade, LearningPathContextFacade>();
 builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerator>();
 
 var app = builder.Build();

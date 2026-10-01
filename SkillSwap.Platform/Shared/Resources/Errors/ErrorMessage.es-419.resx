@@ -99,4 +99,76 @@
     <data name="QuestionGenerationFailed" xml:space="preserve">
         <value>No se pudo generar la evaluación. Inténtalo de nuevo.</value>
     </data>
+    <data name="InvalidAnswers" xml:space="preserve">
+        <value>Envía exactamente una respuesta por pregunta, cada una entre 0 y 3.</value>
+    </data>
+    <data name="InvalidEvidenceUrl" xml:space="preserve">
+        <value>La evidencia debe ser un enlace http o https válido de hasta 500 caracteres.</value>
+    </data>
+    <data name="InvalidSkillTag" xml:space="preserve">
+        <value>La habilidad no puede estar vacía.</value>
+    </data>
+    <data name="InvalidDecision" xml:space="preserve">
+        <value>La decisión debe ser Approved o Rejected.</value>
+    </data>
+    <data name="RubricNotesRequired" xml:space="preserve">
+        <value>Las observaciones de la rúbrica son obligatorias.</value>
+    </data>
+    <data name="RubricNotesTooLong" xml:space="preserve">
+        <value>Las observaciones de la rúbrica no pueden superar los 2000 caracteres.</value>
+    </data>
+    <data name="BlueprintNotFound" xml:space="preserve">
+        <value>No se encontró la evaluación indicada.</value>
+    </data>
+    <data name="AttemptNotFound" xml:space="preserve">
+        <value>No se encontró el intento indicado.</value>
+    </data>
+    <data name="CaseNotFound" xml:space="preserve">
+        <value>No se encontró el caso de verificación indicado.</value>
+    </data>
+    <data name="VerifierProfileNotFound" xml:space="preserve">
+        <value>Todavía no tienes un perfil de Verificador.</value>
+    </data>
+    <data name="NotBlueprintOwner" xml:space="preserve">
+        <value>Solo puedes responder tus propias evaluaciones.</value>
+    </data>
+    <data name="NotAttemptOwner" xml:space="preserve">
+        <value>Solo puedes consultar tus propios intentos.</value>
+    </data>
+    <data name="NotCaseOwner" xml:space="preserve">
+        <value>Solo puedes modificar tus propios casos de verificación.</value>
+    </data>
+    <data name="NotAssignedVerifier" xml:space="preserve">
+        <value>Este caso no está asignado a ti.</value>
+    </data>
+    <data name="NotAVerifier" xml:space="preserve">
+        <value>No eres un Verificador habilitado.</value>
+    </data>
+    <data name="BlueprintOutdated" xml:space="preserve">
+        <value>Esta evaluación fue reemplazada por una más reciente. Solicita una nueva evaluación del nodo.</value>
+    </data>
+    <data name="AttemptAlreadySubmitted" xml:space="preserve">
+        <value>Esta evaluación ya fue respondida. Solicita una nueva evaluación del nodo.</value>
+    </data>
+    <data name="NodeNotAvailable" xml:space="preserve">
+        <value>Este nodo no está disponible para ser demostrado.</value>
+    </data>
+    <data name="OpenCaseAlreadyExists" xml:space="preserve">
+        <value>Este nodo ya tiene un caso de verificación en curso.</value>
+    </data>
+    <data name="CaseAlreadyResolved" xml:space="preserve">
+        <value>El caso de verificación ya fue resuelto.</value>
+    </data>
+    <data name="CaseNotAssigned" xml:space="preserve">
+        <value>El caso de verificación todavía no tiene un Verificador asignado.</value>
+    </data>
+    <data name="SkillNotCompleted" xml:space="preserve">
+        <value>Debes completar el nodo de esta habilidad antes de ser Verificador de ella.</value>
+    </data>
+    <data name="VerifierSkillAlreadyEnabled" xml:space="preserve">
+        <value>Ya estás habilitado como Verificador de esta habilidad.</value>
+    </data>
+    <data name="InvalidAvailability" xml:space="preserve">
+        <value>La disponibilidad debe ser true o false.</value>
+    </data>
 </root>
