@@ -3,19 +3,21 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using SkillSwap.Platform.LearningPathEngine.Domain.Model.Entities;
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.AI;
 using SkillSwap.Platform.Shared.Domain.Exceptions;
 
 namespace SkillSwap.Platform.Tests.LearningPathEngine.Infrastructure;
 
 /// <summary>
-///     The generator is tested against a stub HTTP handler: no network and no real key involved.
+///     The generator is tested against stub HTTP handlers: no network and no real key involved.
 /// </summary>
 public class GeminiQuestionGeneratorTests
 {
     private sealed record CapturedRequest(string Method, string Url, string? ApiKey, string Body)
     {
         public string Model => Url.Split("models/")[1].Split(':')[0];
+        public bool SentThinkingConfig => Body.Contains("thinkingConfig");
     }
 
     /// <summary>
@@ -34,6 +36,16 @@ public class GeminiQuestionGeneratorTests
                 keys?.FirstOrDefault(), body);
             Requests.Add(captured);
             return await respond(Requests.Count, captured.Model);
+        }
+    }
+
+    private sealed class HangingHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK);
         }
     }
 
@@ -80,16 +92,26 @@ public class GeminiQuestionGeneratorTests
         return new StubHandler((_, _) => Status(status, "{\"error\": {\"message\": \"nope\"}}"));
     }
 
-    private static GeminiQuestionGenerator Create(StubHandler handler, string? thinkingLevel = "low",
-        string? fallbackModel = null, int maxRetries = 2)
+    /// <summary>
+    ///     Fails with <paramref name="status" /> for the listed models and answers correctly for the rest.
+    /// </summary>
+    private static StubHandler FailingFor(HttpStatusCode status, params string[] failingModels)
+    {
+        return new StubHandler((_, model) =>
+            failingModels.Contains(model) ? Status(status) : Ok(Envelope(QuestionsJson())));
+    }
+
+    private static GeminiQuestionGenerator Create(HttpMessageHandler handler, string? thinkingLevel = "low",
+        string[]? fallbackModels = null, int maxRetries = 1, int totalTimeoutSeconds = 60)
     {
         var settings = new GeminiSettings
         {
             ApiKey = "secret-key",
             Model = "test-model",
-            FallbackModel = fallbackModel,
+            FallbackModels = fallbackModels?.ToList() ?? [],
             ThinkingLevel = thinkingLevel,
             TimeoutSeconds = 30,
+            TotalTimeoutSeconds = totalTimeoutSeconds,
             MaxRetries = maxRetries,
             RetryDelayMilliseconds = 0
         };
@@ -97,8 +119,8 @@ public class GeminiQuestionGeneratorTests
             NullLogger<GeminiQuestionGenerator>.Instance);
     }
 
-    private static Task<IReadOnlyList<SkillSwap.Platform.LearningPathEngine.Domain.Model.Entities.Question>>
-        Generate(GeminiQuestionGenerator generator, CancellationToken cancellationToken = default)
+    private static Task<IReadOnlyList<Question>> Generate(GeminiQuestionGenerator generator,
+        CancellationToken cancellationToken = default)
     {
         return generator.GenerateQuestionsAsync("rest-api-design", cancellationToken);
     }
@@ -136,8 +158,7 @@ public class GeminiQuestionGeneratorTests
 
         await Generate(Create(handler, thinkingLevel: null));
 
-        using var body = JsonDocument.Parse(handler.Requests[0].Body);
-        Assert.False(body.RootElement.GetProperty("generationConfig").TryGetProperty("thinkingConfig", out _));
+        Assert.False(handler.Requests[0].SentThinkingConfig);
     }
 
     [Theory]
@@ -177,24 +198,43 @@ public class GeminiQuestionGeneratorTests
         Assert.Equal(5, questions.Count);
     }
 
+    // ---------- Reasoning effort is best effort ----------
+
+    [Fact]
+    public async Task Generate_WhenTheModelRejectsThinkingLevel_AsksAgainWithoutIt()
+    {
+        var handler = new StubHandler((_, _) => Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)));
+        handler = new StubHandler((call, _) => call == 1
+            ? Status(HttpStatusCode.BadRequest, "{\"error\": {\"message\": \"Unknown name thinkingLevel\"}}")
+            : Ok(Envelope(QuestionsJson())));
+
+        var questions = await Generate(Create(handler));
+
+        Assert.Equal(5, questions.Count);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.True(handler.Requests[0].SentThinkingConfig);
+        Assert.False(handler.Requests[1].SentThinkingConfig);
+        Assert.All(handler.Requests, r => Assert.Equal("test-model", r.Model));
+    }
+
     // ---------- Permanent errors: no retry, no fallback ----------
 
     [Theory]
     [InlineData(HttpStatusCode.BadRequest)]
     [InlineData(HttpStatusCode.Forbidden)]
-    [InlineData(HttpStatusCode.NotFound)]
     public async Task Generate_WithAPermanentError_FailsAtOnceWithoutRetryingOrFallingBack(HttpStatusCode status)
     {
         var handler = AlwaysFailing(status);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            Generate(Create(handler, fallbackModel: "fallback-model")));
+            Generate(Create(handler, fallbackModels: ["fallback-1"])));
 
+        Assert.IsNotType<GeminiUnavailableException>(exception);
         Assert.Contains(((int)status).ToString(), exception.Message);
         Assert.Single(handler.Requests);
     }
 
-    // ---------- Transient errors: retries and fallback ----------
+    // ---------- Transient errors: retries ----------
 
     [Theory]
     [InlineData(HttpStatusCode.TooManyRequests)]
@@ -209,8 +249,7 @@ public class GeminiQuestionGeneratorTests
         var exception = await Assert.ThrowsAsync<GeminiUnavailableException>(() => Generate(Create(handler)));
 
         Assert.Contains(((int)status).ToString(), exception.Message);
-        Assert.Equal(3, handler.Requests.Count); // the first attempt plus two retries
-        Assert.All(handler.Requests, r => Assert.Equal("test-model", r.Model));
+        Assert.Equal(2, handler.Requests.Count); // the first attempt plus one retry
     }
 
     [Fact]
@@ -219,7 +258,7 @@ public class GeminiQuestionGeneratorTests
         var handler = new StubHandler((call, _) =>
             call <= 2 ? Status(HttpStatusCode.ServiceUnavailable) : Ok(Envelope(QuestionsJson())));
 
-        var questions = await Generate(Create(handler));
+        var questions = await Generate(Create(handler, maxRetries: 2));
 
         Assert.Equal(5, questions.Count);
         Assert.Equal(3, handler.Requests.Count);
@@ -235,53 +274,120 @@ public class GeminiQuestionGeneratorTests
         Assert.Single(handler.Requests);
     }
 
-    [Fact]
-    public async Task Generate_WhenTheMainModelStaysUnavailable_UsesTheFallbackModel()
-    {
-        var handler = new StubHandler((_, model) =>
-            model == "fallback-model" ? Ok(Envelope(QuestionsJson())) : Status(HttpStatusCode.ServiceUnavailable));
+    // ---------- Fallback chain ----------
 
-        var questions = await Generate(Create(handler, fallbackModel: "fallback-model"));
+    [Fact]
+    public async Task Generate_WhenTheMainModelStaysUnavailable_UsesTheFirstFallback()
+    {
+        var handler = FailingFor(HttpStatusCode.ServiceUnavailable, "test-model");
+
+        var questions = await Generate(Create(handler, fallbackModels: ["fallback-1", "fallback-2"]));
 
         Assert.Equal(5, questions.Count);
-        Assert.Equal(["test-model", "test-model", "test-model", "fallback-model"],
+        Assert.Equal(["test-model", "test-model", "fallback-1"], handler.Requests.Select(r => r.Model));
+    }
+
+    [Fact]
+    public async Task Generate_WalksTheWholeChainUntilAModelAnswers()
+    {
+        var handler = FailingFor(HttpStatusCode.ServiceUnavailable, "test-model", "fallback-1");
+
+        var questions = await Generate(Create(handler, fallbackModels: ["fallback-1", "fallback-2"]));
+
+        Assert.Equal(5, questions.Count);
+        Assert.Equal(["test-model", "test-model", "fallback-1", "fallback-1", "fallback-2"],
             handler.Requests.Select(r => r.Model));
     }
 
     [Fact]
-    public async Task Generate_WhenBothModelsStayUnavailable_ReportsTheProviderAsUnavailable()
+    public async Task Generate_WhenEveryModelStaysUnavailable_ReportsTheProviderAsUnavailable()
     {
         var handler = AlwaysFailing(HttpStatusCode.ServiceUnavailable);
 
         await Assert.ThrowsAsync<GeminiUnavailableException>(() =>
-            Generate(Create(handler, fallbackModel: "fallback-model")));
+            Generate(Create(handler, fallbackModels: ["fallback-1", "fallback-2"])));
 
         Assert.Equal(
-            ["test-model", "test-model", "test-model", "fallback-model", "fallback-model", "fallback-model"],
+            ["test-model", "test-model", "fallback-1", "fallback-1", "fallback-2", "fallback-2"],
             handler.Requests.Select(r => r.Model));
     }
 
     [Fact]
-    public async Task Generate_IgnoresAFallbackModelEqualToTheMainOne()
+    public async Task Generate_WhenAModelWasRetired_SkipsToTheNextOneWithoutRetryingIt()
+    {
+        var handler = FailingFor(HttpStatusCode.NotFound, "test-model");
+
+        var questions = await Generate(Create(handler, fallbackModels: ["fallback-1"]));
+
+        Assert.Equal(5, questions.Count);
+        Assert.Equal(["test-model", "fallback-1"], handler.Requests.Select(r => r.Model));
+    }
+
+    [Fact]
+    public async Task Generate_WhenEveryModelWasRetired_TriesEachOnceAndReportsTheLastOne()
+    {
+        var handler = AlwaysFailing(HttpStatusCode.NotFound);
+
+        var exception = await Assert.ThrowsAsync<GeminiUnavailableException>(() =>
+            Generate(Create(handler, fallbackModels: ["fallback-1"])));
+
+        Assert.Equal(["test-model", "fallback-1"], handler.Requests.Select(r => r.Model));
+        Assert.Contains("fallback-1", exception.Message);
+    }
+
+    [Fact]
+    public async Task Generate_IgnoresBlankAndRepeatedModelsInTheChain()
     {
         var handler = AlwaysFailing(HttpStatusCode.ServiceUnavailable);
 
         await Assert.ThrowsAsync<GeminiUnavailableException>(() =>
-            Generate(Create(handler, fallbackModel: "TEST-MODEL")));
+            Generate(Create(handler, maxRetries: 0, fallbackModels: ["TEST-MODEL", " ", "fallback-1", "fallback-1"])));
 
-        Assert.Equal(3, handler.Requests.Count);
+        Assert.Equal(["test-model", "fallback-1"], handler.Requests.Select(r => r.Model));
+    }
+
+    [Fact]
+    public async Task Generate_DoesNotFallBackWhenTheAnswerBreaksTheContract()
+    {
+        var handler = new StubHandler((_, _) => Ok(Envelope(QuestionsJson(4))));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            Generate(Create(handler, fallbackModels: ["fallback-1"])));
+
+        Assert.Single(handler.Requests);
     }
 
     // ---------- Timeouts and cancellation ----------
 
     [Fact]
-    public async Task Generate_WhenTheProviderTimesOut_ThrowsTimeoutExceptionWithoutRetrying()
+    public async Task Generate_WhenTheMainModelTimesOut_UsesTheFallbackWithoutRetryingIt()
+    {
+        var handler = new StubHandler((_, model) => model == "test-model"
+            ? throw new TaskCanceledException("timeout")
+            : Ok(Envelope(QuestionsJson())));
+
+        var questions = await Generate(Create(handler, fallbackModels: ["fallback-1"]));
+
+        Assert.Equal(5, questions.Count);
+        Assert.Equal(["test-model", "fallback-1"], handler.Requests.Select(r => r.Model));
+    }
+
+    [Fact]
+    public async Task Generate_WhenEveryModelTimesOut_ThrowsTimeoutException()
     {
         var handler = new StubHandler((_, _) => throw new TaskCanceledException("timeout"));
 
-        await Assert.ThrowsAsync<TimeoutException>(() => Generate(Create(handler, fallbackModel: "fallback-model")));
+        await Assert.ThrowsAsync<TimeoutException>(() => Generate(Create(handler, fallbackModels: ["fallback-1"])));
 
-        Assert.Single(handler.Requests);
+        Assert.Equal(["test-model", "fallback-1"], handler.Requests.Select(r => r.Model));
+    }
+
+    [Fact]
+    public async Task Generate_WhenTheOverallTimeBudgetIsExhausted_ThrowsTimeoutException()
+    {
+        var generator = Create(new HangingHandler(), totalTimeoutSeconds: 1);
+
+        await Assert.ThrowsAsync<TimeoutException>(() => Generate(generator));
     }
 
     [Fact]
@@ -291,7 +397,7 @@ public class GeminiQuestionGeneratorTests
         await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            Generate(Create(AlwaysOk()), cancellation.Token));
+            Generate(Create(new HangingHandler()), cancellation.Token));
     }
 
     // ---------- Answers that break the contract ----------
