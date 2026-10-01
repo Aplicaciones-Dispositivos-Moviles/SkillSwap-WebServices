@@ -50,6 +50,7 @@ using SkillSwap.Platform.AssessmentPeerReview.Domain.Services;
 using SkillSwap.Platform.AssessmentPeerReview.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using SkillSwap.Platform.Shared.Domain.Events;
 using SkillSwap.Platform.Shared.Infrastructure.Events;
+using SkillSwap.Platform.Iam.Infrastructure.Pipeline.Middleware.Attributes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -180,6 +181,10 @@ app.UseRequestLocalization(localizationOptions);
 app.UseRequestAuthorization();
 
 app.MapControllers();
+// The service root sends visitors to the API documentation.
+app.MapGet("/", () => Results.Redirect("/swagger"))
+    .WithMetadata(new AllowAnonymousAttribute())
+    .ExcludeFromDescription();
 
 app.Run();
 public partial class Program;
