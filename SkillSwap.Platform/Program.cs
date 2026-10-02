@@ -51,6 +51,7 @@ using SkillSwap.Platform.AssessmentPeerReview.Infrastructure.Persistence.EntityF
 using SkillSwap.Platform.Shared.Domain.Events;
 using SkillSwap.Platform.Shared.Infrastructure.Events;
 using SkillSwap.Platform.Iam.Infrastructure.Pipeline.Middleware.Attributes;
+using SkillSwap.Platform.Iam.Infrastructure.Seeding;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,6 +109,8 @@ builder.Services.AddOptions<TokenSettings>()
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserCommandService, UserCommandService>();
 builder.Services.AddScoped<IUserQueryService, UserQueryService>();
+builder.Services.Configure<CoordinatorSeedSettings>(builder.Configuration.GetSection("Seed:Coordinator"));
+builder.Services.AddScoped<CoordinatorSeeder>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<IEmailDomainValidator, EmailDomainValidator>();
 builder.Services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
@@ -165,6 +168,7 @@ builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerat
 var app = builder.Build();
 
 await app.Services.MigrateDatabaseIfEnabledAsync(app.Configuration);
+await app.Services.SeedCoordinatorAsync();
 
 app.UseSwagger();
 app.UseSwaggerUI();
