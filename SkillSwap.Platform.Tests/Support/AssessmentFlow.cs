@@ -170,4 +170,24 @@ public static class AssessmentFlow
     {
         return client.PatchAsync(url, new StringContent(json, Encoding.UTF8, "application/json"));
     }
+    
+    private static int _learnerCount;
+
+    /// <summary>
+    ///     The verifier resolves that many cases, each one failed by a new student, approving and rejecting
+    ///     alternately. They earn 10 SkillCredits per case, whatever the decision.
+    /// </summary>
+    public static async Task EarnCreditsAsync(SignedInUser verifier, int cases)
+    {
+        for (var i = 0; i < cases; i++)
+        {
+            var student = await TestApi.RegisterStudentAsync($"learner{Interlocked.Increment(ref _learnerCount)}");
+            await DeclareGoalAsync(student);
+            var (_, attempt) = await FailSkillAsync(student, "networking-basics");
+
+            var response = await ResolveAsync(verifier, attempt.VerificationCaseId!.Value,
+                i % 2 == 0 ? "Approved" : "Rejected", "Reviewed following the rubric.");
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
+    }
 }

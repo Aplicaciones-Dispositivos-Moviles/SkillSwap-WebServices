@@ -177,4 +177,19 @@
     <data name="NotReputationOwner" xml:space="preserve">
         <value>Solo puedes consultar tu propia reputación.</value>
     </data>
+    <data name="InvalidRedemptionItem" xml:space="preserve">
+        <value>El beneficio a canjear debe ser AdvancedPathUnlock o ContributionCertificate.</value>
+    </data>
+    <data name="WalletNotFound" xml:space="preserve">
+        <value>No se encontró la billetera indicada.</value>
+    </data>
+    <data name="NotWalletOwner" xml:space="preserve">
+        <value>Solo puedes consultar tu propia billetera.</value>
+    </data>
+    <data name="InsufficientBalance" xml:space="preserve">
+        <value>Tu saldo de SkillCredits no alcanza para este beneficio.</value>
+    </data>
+    <data name="ConcurrentUpdate" xml:space="preserve">
+        <value>La billetera se modificó al mismo tiempo. Inténtalo de nuevo.</value>
+    </data>
 </root>

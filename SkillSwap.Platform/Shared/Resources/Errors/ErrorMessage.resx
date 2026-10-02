@@ -177,4 +177,19 @@
     <data name="NotReputationOwner" xml:space="preserve">
         <value>You can only view your own reputation.</value>
     </data>
+    <data name="InvalidRedemptionItem" xml:space="preserve">
+        <value>The benefit to redeem must be AdvancedPathUnlock or ContributionCertificate.</value>
+    </data>
+    <data name="WalletNotFound" xml:space="preserve">
+        <value>The specified wallet was not found.</value>
+    </data>
+    <data name="NotWalletOwner" xml:space="preserve">
+        <value>You can only view your own wallet.</value>
+    </data>
+    <data name="InsufficientBalance" xml:space="preserve">
+        <value>Your SkillCredits balance is not enough for this benefit.</value>
+    </data>
+    <data name="ConcurrentUpdate" xml:space="preserve">
+        <value>The wallet was modified at the same time. Please try again.</value>
+    </data>
 </root>
