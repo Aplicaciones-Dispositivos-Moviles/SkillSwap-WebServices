@@ -63,6 +63,15 @@ using SkillSwap.Platform.Reputation.Application.QueryServices;
 using SkillSwap.Platform.Reputation.Domain.Repositories;
 using SkillSwap.Platform.Reputation.Domain.Services;
 using SkillSwap.Platform.Reputation.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
+using SkillSwap.Platform.Iam.Domain.Model.Events;
+using SkillSwap.Platform.RecognitionIncentives.Application.CommandServices;
+using SkillSwap.Platform.RecognitionIncentives.Application.EventHandlers;
+using SkillSwap.Platform.RecognitionIncentives.Application.Internal.CommandServices;
+using SkillSwap.Platform.RecognitionIncentives.Application.Internal.QueryServices;
+using SkillSwap.Platform.RecognitionIncentives.Application.QueryServices;
+using SkillSwap.Platform.RecognitionIncentives.Domain.Repositories;
+using SkillSwap.Platform.RecognitionIncentives.Domain.Services;
+using SkillSwap.Platform.RecognitionIncentives.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -180,6 +189,15 @@ builder.Services.AddScoped<IVerifierReliabilityQueryService, VerifierReliability
 builder.Services.AddScoped<IStudentEmployabilityQueryService, StudentEmployabilityQueryService>();
 builder.Services.AddScoped<IDomainEventHandler<VerificationCaseResolved>, RecordCaseResolutionEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<AssessmentAttemptPassed>, RecordAutomaticApprovalEventHandler>();
+
+// Recognition & Incentives
+builder.Services.AddScoped<IWalletRepository, WalletRepository>();
+builder.Services.AddScoped<ICreditTransactionRepository, CreditTransactionRepository>();
+builder.Services.AddScoped<IRedemptionPricing, RedemptionPricing>();
+builder.Services.AddScoped<IWalletCommandService, WalletCommandService>();
+builder.Services.AddScoped<IWalletQueryService, WalletQueryService>();
+builder.Services.AddScoped<IDomainEventHandler<UserRegistered>, CreateWalletEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<VerificationCaseResolved>, CreditVerifierEventHandler>();
 
 var app = builder.Build();
 

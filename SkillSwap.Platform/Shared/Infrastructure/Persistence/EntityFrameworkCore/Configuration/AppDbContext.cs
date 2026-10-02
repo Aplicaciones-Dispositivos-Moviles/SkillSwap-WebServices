@@ -4,6 +4,7 @@ using SkillSwap.Platform.Iam.Infrastructure.Persistence.EntityFrameworkCore.Conf
 using SkillSwap.Platform.LearningPathEngine.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using SkillSwap.Platform.AssessmentPeerReview.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 using SkillSwap.Platform.Reputation.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
+using SkillSwap.Platform.RecognitionIncentives.Infrastructure.Persistence.EntityFrameworkCore.Configuration.Extensions;
 
 namespace SkillSwap.Platform.Shared.Infrastructure.Persistence.EntityFrameworkCore.Configuration;
 
@@ -26,5 +27,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         builder.ApplyLearningPathEngineConfiguration();
         builder.ApplyAssessmentPeerReviewConfiguration();
         builder.ApplyReputationConfiguration();
+        builder.ApplyRecognitionIncentivesConfiguration();
     }
 }
