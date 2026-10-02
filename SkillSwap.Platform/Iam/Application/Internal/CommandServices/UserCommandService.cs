@@ -12,6 +12,8 @@ using SkillSwap.Platform.Iam.Domain.Services;
 using SkillSwap.Platform.Shared.Application.Model;
 using SkillSwap.Platform.Shared.Domain.Repositories;
 using SkillSwap.Platform.Shared.Resources.Errors;
+using SkillSwap.Platform.Iam.Domain.Model.Events;
+using SkillSwap.Platform.Shared.Domain.Events;
 
 namespace SkillSwap.Platform.Iam.Application.Internal.CommandServices;
 
@@ -23,6 +25,7 @@ namespace SkillSwap.Platform.Iam.Application.Internal.CommandServices;
 /// <param name="emailDomainValidator">Institutional email domain validator</param>
 /// <param name="tokenGenerator">Token generator</param>
 /// <param name="unitOfWork">Unit of work</param>
+/// <param name="eventPublisher">Publishes domain events once the change is saved</param>
 /// <param name="localizer">String localizer for error messages</param>
 public class UserCommandService(
     IUserRepository userRepository,
@@ -30,6 +33,7 @@ public class UserCommandService(
     IEmailDomainValidator emailDomainValidator,
     ITokenGenerator tokenGenerator,
     IUnitOfWork unitOfWork,
+    IDomainEventPublisher eventPublisher,
     IStringLocalizer<ErrorMessage> localizer)
     : IUserCommandService
 {
@@ -61,7 +65,11 @@ public class UserCommandService(
         await userRepository.AddAsync(user, cancellationToken);
 
         var error = await TrySaveAsync(cancellationToken);
-        return error is null ? Result<User>.Success(user) : Failure<User>(error.Value);
+        if (error is not null) return Failure<User>(error.Value);
+
+        // Other bounded contexts (the wallet, later the free plan) react to the new account.
+        await eventPublisher.PublishAsync(new UserRegistered(user.Id, user.Role), cancellationToken);
+        return Result<User>.Success(user);
     }
 
     /// <inheritdoc />

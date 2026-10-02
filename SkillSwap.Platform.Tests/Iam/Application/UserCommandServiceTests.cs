@@ -7,6 +7,7 @@ using SkillSwap.Platform.Iam.Domain.Services;
 using SkillSwap.Platform.Shared.Application.Model;
 using SkillSwap.Platform.Shared.Resources.Errors;
 using SkillSwap.Platform.Tests.Support;
+using SkillSwap.Platform.Iam.Domain.Model.Events;
 
 namespace SkillSwap.Platform.Tests.Iam.Application;
 
@@ -15,6 +16,7 @@ public class UserCommandServiceTests
     private readonly FakeUserRepository _repository = new();
     private readonly UserCommandService _service;
     private readonly FakeUnitOfWork _unitOfWork = new();
+    private readonly FakeDomainEventPublisher _events = new();
 
     public UserCommandServiceTests()
     {
@@ -24,6 +26,7 @@ public class UserCommandServiceTests
             new EmailDomainValidator(),
             new FakeTokenGenerator(),
             _unitOfWork,
+            _events,
             new FakeLocalizer<ErrorMessage>());
     }
 
@@ -54,6 +57,49 @@ public class UserCommandServiceTests
         Assert.Equal(UserRole.Student, user.Role);
         Assert.False(user.IsVerified);
         Assert.Equal(1, _unitOfWork.CompleteCalls);
+    }
+    
+    [Fact]
+    public async Task SignUp_WithValidData_PublishesTheUserRegisteredEvent()
+    {
+        var result = await _service.Handle(SignUp(), CancellationToken.None);
+
+        var published = Assert.IsType<UserRegistered>(Assert.Single(_events.Published));
+        Assert.Equal(result.Value!.Id, published.UserId);
+        Assert.True(published.UserId > 0);
+        Assert.Equal(UserRole.Student, published.Role);
+    }
+
+    [Fact]
+    public async Task SignUp_WhenTheUsernameIsTaken_PublishesNothing()
+    {
+        await _service.Handle(SignUp(), CancellationToken.None);
+        _events.Published.Clear();
+
+        var result = await _service.Handle(SignUp(email: "other@upc.edu.pe"), CancellationToken.None);
+
+        AssertFailure(result, IamError.UsernameAlreadyTaken);
+        Assert.Empty(_events.Published);
+    }
+
+    [Fact]
+    public async Task SignUp_WithNonInstitutionalEmail_PublishesNothing()
+    {
+        var result = await _service.Handle(SignUp(email: "ana@gmail.com"), CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Empty(_events.Published);
+    }
+
+    [Fact]
+    public async Task SignUp_WhenPersistenceFails_PublishesNothing()
+    {
+        _unitOfWork.ExceptionToThrow = new DbUpdateException("failure");
+
+        var result = await _service.Handle(SignUp(), CancellationToken.None);
+
+        AssertFailure(result, IamError.DatabaseError);
+        Assert.Empty(_events.Published);
     }
 
     [Theory]
