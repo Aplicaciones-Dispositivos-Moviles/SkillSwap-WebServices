@@ -93,8 +93,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Database (PostgreSQL)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                       ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+var connectionString = DatabaseConnection.Resolve(builder.Configuration);
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // Shared
@@ -164,6 +163,8 @@ builder.Services.AddScoped<ILearningPathContextFacade, LearningPathContextFacade
 builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerator>();
 
 var app = builder.Build();
+
+await app.Services.MigrateDatabaseIfEnabledAsync(app.Configuration);
 
 app.UseSwagger();
 app.UseSwaggerUI();
