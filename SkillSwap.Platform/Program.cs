@@ -52,6 +52,7 @@ using SkillSwap.Platform.Shared.Domain.Events;
 using SkillSwap.Platform.Shared.Infrastructure.Events;
 using SkillSwap.Platform.Iam.Infrastructure.Pipeline.Middleware.Attributes;
 using SkillSwap.Platform.Iam.Infrastructure.Seeding;
+using SkillSwap.Platform.Shared.Infrastructure.Cors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,15 +62,7 @@ builder.Logging.AddConsole();
 builder.Services.AddControllers();
 
 // CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
-});
+builder.Services.AddConfiguredCors(builder.Configuration);
 
 // Localization (error messages resolved from Shared/Resources/Errors)
 builder.Services.AddLocalization();
@@ -173,7 +166,7 @@ await app.Services.SeedCoordinatorAsync();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseCors("AllowAll");
+app.UseCors(CorsConfigurationExtensions.PolicyName);
 
 // English is the default language; any Spanish variant is served as es-419.
 var localizationOptions = new RequestLocalizationOptions()
