@@ -50,6 +50,9 @@ using SkillSwap.Platform.AssessmentPeerReview.Domain.Services;
 using SkillSwap.Platform.AssessmentPeerReview.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 using SkillSwap.Platform.Shared.Domain.Events;
 using SkillSwap.Platform.Shared.Infrastructure.Events;
+using SkillSwap.Platform.Iam.Infrastructure.Pipeline.Middleware.Attributes;
+using SkillSwap.Platform.Iam.Infrastructure.Seeding;
+using SkillSwap.Platform.Shared.Infrastructure.Cors;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,15 +62,7 @@ builder.Logging.AddConsole();
 builder.Services.AddControllers();
 
 // CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
-});
+builder.Services.AddConfiguredCors(builder.Configuration);
 
 // Localization (error messages resolved from Shared/Resources/Errors)
 builder.Services.AddLocalization();
@@ -92,8 +87,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // Database (PostgreSQL)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-                       ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+var connectionString = DatabaseConnection.Resolve(builder.Configuration);
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
 
 // Shared
@@ -108,6 +102,8 @@ builder.Services.AddOptions<TokenSettings>()
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserCommandService, UserCommandService>();
 builder.Services.AddScoped<IUserQueryService, UserQueryService>();
+builder.Services.Configure<CoordinatorSeedSettings>(builder.Configuration.GetSection("Seed:Coordinator"));
+builder.Services.AddScoped<CoordinatorSeeder>();
 builder.Services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddScoped<IEmailDomainValidator, EmailDomainValidator>();
 builder.Services.AddScoped<ITokenGenerator, JwtTokenGenerator>();
@@ -164,10 +160,13 @@ builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerat
 
 var app = builder.Build();
 
+await app.Services.MigrateDatabaseIfEnabledAsync(app.Configuration);
+await app.Services.SeedCoordinatorAsync();
+
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseCors("AllowAll");
+app.UseCors(CorsConfigurationExtensions.PolicyName);
 
 // English is the default language; any Spanish variant is served as es-419.
 var localizationOptions = new RequestLocalizationOptions()
@@ -180,6 +179,10 @@ app.UseRequestLocalization(localizationOptions);
 app.UseRequestAuthorization();
 
 app.MapControllers();
+// The service root sends visitors to the API documentation.
+app.MapGet("/", () => Results.Redirect("/swagger"))
+    .WithMetadata(new AllowAnonymousAttribute())
+    .ExcludeFromDescription();
 
 app.Run();
 public partial class Program;
