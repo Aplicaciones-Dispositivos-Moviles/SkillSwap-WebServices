@@ -53,6 +53,7 @@ using SkillSwap.Platform.Shared.Infrastructure.Events;
 using SkillSwap.Platform.Iam.Infrastructure.Pipeline.Middleware.Attributes;
 using SkillSwap.Platform.Iam.Infrastructure.Seeding;
 using SkillSwap.Platform.Shared.Infrastructure.Cors;
+using SkillSwap.Platform.AssessmentPeerReview.Application.ACL;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -142,6 +143,7 @@ builder.Services.AddScoped<ILearningPathCommandService, LearningPathCommandServi
 builder.Services.AddScoped<IAssessmentBlueprintCommandService, AssessmentBlueprintCommandService>();
 builder.Services.AddScoped<ILearningPathQueryService, LearningPathQueryService>();
 builder.Services.AddScoped<IAssessmentBlueprintQueryService, AssessmentBlueprintQueryService>();
+
 // Assessment & Peer Review
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 builder.Services.AddScoped<IAssessmentAttemptRepository, AssessmentAttemptRepository>();
@@ -157,6 +159,7 @@ builder.Services.AddScoped<IVerificationCaseQueryService, VerificationCaseQueryS
 builder.Services.AddScoped<IVerifierProfileQueryService, VerifierProfileQueryService>();
 builder.Services.AddScoped<ILearningPathContextFacade, LearningPathContextFacade>();
 builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerator>();
+builder.Services.AddScoped<IVerifierProfileContextFacade, VerifierProfileContextFacade>();
 
 var app = builder.Build();
 
