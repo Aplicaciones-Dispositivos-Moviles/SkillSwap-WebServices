@@ -53,6 +53,16 @@ using SkillSwap.Platform.Shared.Infrastructure.Events;
 using SkillSwap.Platform.Iam.Infrastructure.Pipeline.Middleware.Attributes;
 using SkillSwap.Platform.Iam.Infrastructure.Seeding;
 using SkillSwap.Platform.Shared.Infrastructure.Cors;
+using SkillSwap.Platform.AssessmentPeerReview.Application.ACL;
+using SkillSwap.Platform.AssessmentPeerReview.Domain.Model.Events;
+using SkillSwap.Platform.Reputation.Application.CommandServices;
+using SkillSwap.Platform.Reputation.Application.EventHandlers;
+using SkillSwap.Platform.Reputation.Application.Internal.CommandServices;
+using SkillSwap.Platform.Reputation.Application.Internal.QueryServices;
+using SkillSwap.Platform.Reputation.Application.QueryServices;
+using SkillSwap.Platform.Reputation.Domain.Repositories;
+using SkillSwap.Platform.Reputation.Domain.Services;
+using SkillSwap.Platform.Reputation.Infrastructure.Persistence.EntityFrameworkCore.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -142,6 +152,7 @@ builder.Services.AddScoped<ILearningPathCommandService, LearningPathCommandServi
 builder.Services.AddScoped<IAssessmentBlueprintCommandService, AssessmentBlueprintCommandService>();
 builder.Services.AddScoped<ILearningPathQueryService, LearningPathQueryService>();
 builder.Services.AddScoped<IAssessmentBlueprintQueryService, AssessmentBlueprintQueryService>();
+
 // Assessment & Peer Review
 builder.Services.AddScoped<IDomainEventPublisher, DomainEventPublisher>();
 builder.Services.AddScoped<IAssessmentAttemptRepository, AssessmentAttemptRepository>();
@@ -157,6 +168,18 @@ builder.Services.AddScoped<IVerificationCaseQueryService, VerificationCaseQueryS
 builder.Services.AddScoped<IVerifierProfileQueryService, VerifierProfileQueryService>();
 builder.Services.AddScoped<ILearningPathContextFacade, LearningPathContextFacade>();
 builder.Services.AddHttpClient<IQuestionGenerationService, GeminiQuestionGenerator>();
+builder.Services.AddScoped<IVerifierProfileContextFacade, VerifierProfileContextFacade>();
+
+// Reputation
+builder.Services.AddScoped<IVerifierReliabilityRepository, VerifierReliabilityRepository>();
+builder.Services.AddScoped<IStudentEmployabilityScoreRepository, StudentEmployabilityScoreRepository>();
+builder.Services.AddScoped<IVerifierReliabilityCalculator, VerifierReliabilityCalculator>();
+builder.Services.AddScoped<IEmployabilityScoreCalculator, EmployabilityScoreCalculator>();
+builder.Services.AddScoped<IReputationCommandService, ReputationCommandService>();
+builder.Services.AddScoped<IVerifierReliabilityQueryService, VerifierReliabilityQueryService>();
+builder.Services.AddScoped<IStudentEmployabilityQueryService, StudentEmployabilityQueryService>();
+builder.Services.AddScoped<IDomainEventHandler<VerificationCaseResolved>, RecordCaseResolutionEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<AssessmentAttemptPassed>, RecordAutomaticApprovalEventHandler>();
 
 var app = builder.Build();
 

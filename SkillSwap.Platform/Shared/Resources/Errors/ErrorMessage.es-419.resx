@@ -171,4 +171,10 @@
     <data name="InvalidAvailability" xml:space="preserve">
         <value>La disponibilidad debe ser true o false.</value>
     </data>
+    <data name="ReputationNotFound" xml:space="preserve">
+        <value>Todavía no se registró ninguna reputación.</value>
+    </data>
+    <data name="NotReputationOwner" xml:space="preserve">
+        <value>Solo puedes consultar tu propia reputación.</value>
+    </data>
 </root>
